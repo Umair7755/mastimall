@@ -19,7 +19,9 @@ const DEV_DB_PATH = path.join(__dirname, "..", ".data", "dev-mongo");
 
 async function connectMongo() {
   try {
-    await mongoose.connect(env.mongoUri, { serverSelectionTimeoutMS: 4000 });
+    await mongoose.connect(env.mongoUri, {
+      serverSelectionTimeoutMS: process.env.NODE_ENV === "production" ? 20000 : 4000,
+    });
     console.log(`MongoDB connected: ${env.mongoUri}`);
     return { mode: "mongodb", uri: env.mongoUri };
   } catch (error) {
