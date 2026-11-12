@@ -1,0 +1,409 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #f7f4ee;
+  --color-surface: #ffffff;
+  --color-brand: #4f46e5;
+  --color-brand-dark: #312e81;
+  --color-brand-soft: #eef0ff;
+  --color-sun: #fbbf24;
+  --color-coral: #fb7185;
+  --color-ink: #0f172a;
+  --color-ink-muted: #64748b;
+  --color-line: #e8e4db;
+  --color-success: #22c55e;
+  --color-danger: #dc2626;
+  --color-sky: #dff3ff;
+  --color-mint: #dff7ec;
+  --color-blush: #ffe4ec;
+
+  --font-display: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
+  --font-body: var(--font-nunito-sans), system-ui, sans-serif;
+
+  --radius-card: 1.75rem;
+  --radius-media: 1.25rem;
+  --radius-field: 1.25rem;
+  --radius-shell: 2rem;
+
+  --shadow-press: 0 3px 0 0 var(--color-brand-dark);
+  --shadow-press-sun: 0 3px 0 0 #c9860a;
+  --shadow-press-ink: 0 3px 0 0 #1e293b;
+  --shadow-soft: 0 10px 30px -18px rgb(15 23 42 / 0.28);
+  --shadow-lift: 0 18px 40px -20px rgb(15 23 42 / 0.35);
+  --shadow-nav: 0 14px 40px -18px rgb(49 46 129 / 0.28);
+}
+
+body {
+  background:
+    radial-gradient(circle at 12% -10%, rgb(79 70 229 / 0.1), transparent 34%),
+    radial-gradient(circle at 88% 0%, rgb(251 191 36 / 0.16), transparent 28%),
+    radial-gradient(circle at 70% 18%, rgb(251 113 133 / 0.08), transparent 26%),
+    var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  line-height: 1.15;
+}
+
+[data-department="decor"] {
+  --color-brand: #4c6b5c;
+  --color-brand-dark: #34493f;
+  --color-brand-soft: #e8efea;
+  --color-sun: #d9a35b;
+  --shadow-press: 0 3px 0 0 var(--color-brand-dark);
+}
+
+summary {
+  list-style: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+.skeleton {
+  background: linear-gradient(105deg, #ebe6dc 18%, #f8f5ef 38%, #ebe6dc 58%);
+  background-size: 220% 100%;
+  animation: shimmer 1.35s ease-in-out infinite;
+}
+
+.skeleton-card {
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: white;
+  box-shadow: var(--shadow-soft);
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.section-shell {
+  border-radius: var(--radius-shell);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0.72));
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgb(255 255 255 / 0.7);
+}
+
+.hero-glow {
+  background: linear-gradient(135deg, #ffe8c8, #eef0ff 55%, #ffd6e5);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.float-soft {
+  animation: float-soft 4.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.price-range-thumb {
+  pointer-events: none;
+  height: 32px;
+}
+
+.price-range-thumb::-webkit-slider-thumb {
+  pointer-events: auto;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  margin-top: -7px;
+  border-radius: 9999px;
+  border: 2px solid #ffffff;
+  background: var(--color-brand);
+  box-shadow: 0 2px 8px rgb(79 70 229 / 0.28);
+  cursor: grab;
+}
+
+.price-range-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  height: 18px;
+  width: 18px;
+  border: 2px solid #ffffff;
+  border-radius: 9999px;
+  background: var(--color-brand);
+  box-shadow: 0 2px 8px rgb(79 70 229 / 0.28);
+  cursor: grab;
+}
+
+.price-range-thumb::-webkit-slider-runnable-track {
+  background: transparent;
+  border: none;
+  height: 4px;
+}
+
+.price-range-thumb::-moz-range-track {
+  background: transparent;
+  border: none;
+  height: 4px;
+}
+
+/* Masti Mall logo — sparkles over the official mark */
+.masti-sparkle {
+  pointer-events: none;
+  position: absolute;
+  width: 0.55em;
+  height: 0.55em;
+  background: #fbbf24;
+  clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+  animation: masti-twinkle 2.4s ease-in-out infinite;
+}
+
+.masti-sparkle--a {
+  left: 8%;
+  top: 6%;
+  width: 0.42em;
+  height: 0.42em;
+  font-size: inherit;
+}
+
+.masti-sparkle--b {
+  left: 36%;
+  top: 2%;
+  background: #fde68a;
+  animation-delay: 0.7s;
+}
+
+.masti-sparkle--c {
+  right: 10%;
+  top: 8%;
+  background: #c4b5fd;
+  width: 0.38em;
+  height: 0.38em;
+  animation-delay: 1.3s;
+}
+
+@keyframes masti-twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.75) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15) rotate(18deg);
+  }
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-sun);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: #fbbf24;
+  color: #0f172a;
+}
+
+/* Sale announcement banner */
+.sale-banner {
+  background:
+    radial-gradient(ellipse 50% 120% at 10% 50%, rgb(251 191 36 / 0.35), transparent 55%),
+    radial-gradient(ellipse 40% 100% at 90% 40%, rgb(251 113 133 / 0.4), transparent 50%),
+    linear-gradient(105deg, #4c1d95 0%, #6d28d9 38%, #db2777 72%, #ea580c 100%);
+}
+
+.sale-banner__shimmer {
+  background: linear-gradient(
+    110deg,
+    transparent 20%,
+    rgb(255 255 255 / 0.18) 45%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  animation: sale-shimmer 3.8s ease-in-out infinite;
+}
+
+.sale-banner__badge {
+  animation: sale-badge-tilt 2.2s ease-in-out infinite;
+}
+
+.sale-banner__tick {
+  transition: transform 0.2s ease;
+}
+
+.sale-banner__tick--pulse {
+  animation: sale-tick-pulse 0.45s ease;
+}
+
+@keyframes sale-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
+}
+
+@keyframes sale-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(6deg);
+  }
+}
+
+@keyframes sale-spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sale-badge-tilt {
+  0%,
+  100% {
+    transform: rotate(-2deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes sale-tick-pulse {
+  0% {
+    transform: scale(1.12) translateY(-2px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+.sale-float {
+  animation: sale-float 2.8s ease-in-out infinite;
+}
+
+.sale-float-delay {
+  animation: sale-float 3.2s ease-in-out 0.4s infinite;
+}
+
+.sale-spin {
+  animation: sale-spin-slow 12s linear infinite;
+}
+
+.sale-banner-skeleton {
+  min-height: 4.25rem;
+  background:
+    radial-gradient(ellipse 50% 120% at 12% 50%, rgb(251 191 36 / 0.35), transparent 55%),
+    radial-gradient(ellipse 40% 100% at 88% 40%, rgb(251 113 133 / 0.42), transparent 50%),
+    linear-gradient(105deg, #4c1d95 0%, #6d28d9 38%, #db2777 72%, #ea580c 100%);
+}
+
+.sale-banner-skeleton__shine {
+  background: linear-gradient(
+    110deg,
+    transparent 18%,
+    rgb(255 255 255 / 0.28) 46%,
+    transparent 72%
+  );
+  background-size: 220% 100%;
+  animation: sale-banner-shine 1.6s ease-in-out infinite;
+}
+
+.sale-banner-skeleton__pulse {
+  animation: sale-banner-pulse 1.4s ease-in-out infinite;
+}
+
+.sale-banner-skeleton__pulse-delay {
+  animation: sale-banner-pulse 1.4s ease-in-out 0.25s infinite;
+}
+
+@keyframes sale-banner-shine {
+  0% {
+    background-position: 130% 0;
+  }
+  100% {
+    background-position: -130% 0;
+  }
+}
+
+@keyframes sale-banner-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sale-banner__shimmer,
+  .sale-banner__badge,
+  .sale-banner__tick--pulse,
+  .sale-float,
+  .sale-float-delay,
+  .sale-spin,
+  .sale-banner-skeleton__shine,
+  .sale-banner-skeleton__pulse,
+  .sale-banner-skeleton__pulse-delay,
+  .order-step-pulse {
+    animation: none !important;
+  }
+
+  .sale-banner-skeleton__pulse,
+  .sale-banner-skeleton__pulse-delay {
+    opacity: 0.7;
+  }
+}
+
+@keyframes order-step-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 3px 0 0 #c9860a, 0 0 0 0 rgb(251 191 36 / 0.35);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 3px 0 0 #c9860a, 0 0 0 8px rgb(251 191 36 / 0);
+  }
+}
+
+.order-step-pulse {
+  animation: order-step-pulse 1.6s ease-in-out infinite;
+}
+

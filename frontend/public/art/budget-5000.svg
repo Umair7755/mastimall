@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" fill="none"><ellipse cx="320" cy="530" rx="150" ry="18" fill="#0F172A" opacity="0.08"/>
+    <rect x="150" y="180" width="340" height="220" rx="36" fill="#FBBF24"/>
+    <text x="320" y="310" text-anchor="middle" font-family="ui-rounded, system-ui, sans-serif" font-size="72" font-weight="700" fill="#0F172A">5,000</text>
+  </svg>
