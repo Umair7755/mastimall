@@ -69,6 +69,25 @@ export function AccountPanel() {
       .finally(() => setReady(true));
   }, []);
 
+  // Refresh order statuses on tab focus and when admin updates an order.
+  useEffect(() => {
+    function reloadOrders() {
+      if (!customer) return;
+      apiFetch("/account/orders")
+        .then((data) => setOrders(data.orders || []))
+        .catch(() => null);
+    }
+    function onFocus() {
+      reloadOrders();
+    }
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("mastimall:orders-updated", reloadOrders);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("mastimall:orders-updated", reloadOrders);
+    };
+  }, [customer]);
+
   useEffect(() => {
     setOrderPage((current) => Math.min(current, Math.max(1, Math.ceil(orders.length / ORDER_PAGE_SIZE) || 1)));
   }, [orders.length]);

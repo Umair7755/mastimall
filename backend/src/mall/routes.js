@@ -15,6 +15,7 @@ import { Review } from './models/Review.js';
 import { presentReview, refreshProductRating } from './lib/reviews.js';
 import { presentCategory, presentDepartment, presentOrder, presentProduct } from './lib/present.js';
 import { pingRevalidate } from './lib/revalidate.js';
+import { readStoreRevisions } from './lib/catalogRevision.js';
 import { isPkMobile, normalizePhone } from './lib/phone.js';
 import { shippingFee } from './lib/shipping.js';
 import { AGE_BANDS, AUDIENCES, RESERVED_SLUGS, SORTS, paymentAccounts } from './constants.js';
@@ -27,8 +28,18 @@ import {
   quoteSchema,
   registerSchema,
   reviewSchema,
+  supportReplySchema,
+  supportStartSchema,
   wishlistSchema,
 } from './validators.js';
+import { SupportThread } from './models/SupportThread.js';
+import { SupportMessage } from './models/SupportMessage.js';
+import {
+  appendMessage,
+  newPublicId,
+  presentMessage,
+  presentThread,
+} from './lib/support.js';
 import {
   clearMallCookie,
   optionalMallAuth,
@@ -426,6 +437,14 @@ mall.get(
 );
 
 mall.get(
+  '/settings/revision',
+  asyncHandler(async (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json(await readStoreRevisions());
+  })
+);
+
+mall.get(
   '/settings/checkout',
   asyncHandler(async (_req, res) => {
     const accounts = paymentAccounts();
@@ -754,4 +773,71 @@ mall.post(
   })
 );
 
-export default mall
+mall.post(
+  '/support/threads',
+  writeLimit,
+  validate(supportStartSchema),
+  asyncHandler(async (req, res) => {
+    const phone = normalizePhone(req.body.phone);
+    if (!isPkMobile(phone)) throw new HttpError(400, 'Phone number should look like 03XX-XXXXXXX.');
+    const publicId = req.body.publicId || newPublicId();
+    let thread = await SupportThread.findOne({ publicId });
+    if (!thread) {
+      thread = await SupportThread.create({
+        publicId,
+        name: req.body.name,
+        phone,
+        status: 'open',
+        lastMessageAt: new Date(),
+        lastPreview: '',
+        unreadAdmin: 0,
+        unreadCustomer: 0,
+      });
+      await appendMessage(thread, {
+        from: 'system',
+        body: 'Thanks for reaching out. A Masti Mall teammate will reply here shortly.',
+      });
+    } else {
+      thread.name = req.body.name;
+      thread.phone = phone;
+      await thread.save();
+    }
+    const message = await appendMessage(thread, { from: 'customer', body: req.body.body });
+    const messages = await SupportMessage.find({ thread: thread._id }).sort({ createdAt: 1 }).limit(200);
+    res.status(201).json({
+      thread: presentThread(thread),
+      message: presentMessage(message),
+      messages: messages.map(presentMessage),
+    });
+  })
+);
+
+mall.get(
+  '/support/threads/:publicId',
+  asyncHandler(async (req, res) => {
+    const thread = await SupportThread.findOne({ publicId: req.params.publicId });
+    if (!thread) throw new HttpError(404, 'Conversation not found');
+    // Only clear unread when the chat UI is open (markRead=1). Polling must not wipe it.
+    if (req.query.markRead === '1' && thread.unreadCustomer) {
+      thread.unreadCustomer = 0;
+      await thread.save();
+    }
+    const messages = await SupportMessage.find({ thread: thread._id }).sort({ createdAt: 1 }).limit(200);
+    res.set('Cache-Control', 'no-store');
+    res.json({ thread: presentThread(thread), messages: messages.map(presentMessage) });
+  })
+);
+
+mall.post(
+  '/support/threads/:publicId/messages',
+  writeLimit,
+  validate(supportReplySchema),
+  asyncHandler(async (req, res) => {
+    const thread = await SupportThread.findOne({ publicId: req.params.publicId });
+    if (!thread) throw new HttpError(404, 'Conversation not found');
+    const message = await appendMessage(thread, { from: 'customer', body: req.body.body });
+    res.status(201).json({ thread: presentThread(thread), message: presentMessage(message) });
+  })
+);
+
+export default mall;

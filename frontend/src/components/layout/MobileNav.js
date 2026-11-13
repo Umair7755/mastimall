@@ -23,8 +23,8 @@ function MobileNavInner() {
   const count = useCart((state) => state.items.reduce((sum, item) => sum + item.qty, 0));
 
   return (
-    <nav className="fixed inset-x-0 bottom-3 z-40 px-3 lg:hidden">
-      <div className="mx-auto grid h-16 max-w-md grid-cols-4 rounded-full border border-white/70 bg-surface/95 px-2 shadow-nav backdrop-blur-xl">
+    <nav className="fixed inset-x-0 bottom-3 z-40 px-3 pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <div className="mx-auto grid h-16 max-w-md grid-cols-4 overflow-hidden rounded-full border border-white/70 bg-surface/95 px-1.5 shadow-nav backdrop-blur-xl sm:px-2">
         {items.map((item) => {
           const Icon = item.icon;
           const active = item.href && pathname === item.href;

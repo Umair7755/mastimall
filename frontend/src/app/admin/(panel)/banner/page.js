@@ -9,7 +9,7 @@ import {
   Card,
   PageHeader,
 } from "@/components/admin/ui";
-import { adminFetch } from "@/lib/admin";
+import { adminFetch, adminMutate } from "@/lib/admin";
 
 const EMPTY = {
   enabled: true,
@@ -56,19 +56,23 @@ export default function AdminBannerPage() {
     setError("");
     try {
       const endsAt = form.endsAt ? new Date(form.endsAt).toISOString() : null;
-      await adminFetch("/admin/settings/banner", {
-        method: "PUT",
-        body: JSON.stringify({
-          enabled: form.enabled,
-          badge: form.badge,
-          title: form.title,
-          subtitle: form.subtitle,
-          ctaLabel: form.ctaLabel,
-          ctaHref: form.ctaHref,
-          endsAt,
-          message: form.message,
-        }),
-      });
+      await adminMutate(
+        "/admin/settings/banner",
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            enabled: form.enabled,
+            badge: form.badge,
+            title: form.title,
+            subtitle: form.subtitle,
+            ctaLabel: form.ctaLabel,
+            ctaHref: form.ctaHref,
+            endsAt,
+            message: form.message,
+          }),
+        },
+        ["home"]
+      );
       setSaved(true);
       setPending(false);
     } catch (err) {

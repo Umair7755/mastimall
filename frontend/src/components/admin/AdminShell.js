@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   LayoutDashboard,
   LogOut,
+  MessageCircle,
   Package,
   ShoppingBag,
   Store,
@@ -19,6 +20,7 @@ const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/support", label: "Support", icon: MessageCircle },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/banner", label: "Sale banner", icon: ImageIcon },
 ];

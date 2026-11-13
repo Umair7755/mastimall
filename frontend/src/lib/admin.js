@@ -1,7 +1,15 @@
 import { apiFetch } from "@/lib/browser";
+import { refreshStoreCache } from "@/lib/refresh-store";
 
 export function adminFetch(path, options = {}) {
   return apiFetch(path, options);
+}
+
+/** Prefer this after catalog/banner saves so the live shop updates immediately. */
+export async function adminMutate(path, options = {}, tags = ["products", "home", "departments"]) {
+  const data = await apiFetch(path, options);
+  await refreshStoreCache(tags).catch(() => null);
+  return data;
 }
 
 export function formatMoney(value) {

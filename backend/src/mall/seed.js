@@ -727,7 +727,7 @@ await MallSetting.create({
       { label: 'Toys', href: '/toys', kind: 'department' },
       { label: 'Decor', href: null, soon: true },
       { label: 'Deals', href: '/search?onSale=1' },
-      { label: 'New arrivals', href: '/search?sort=new' },
+      { label: 'New arrivals', href: '/search?sort=new' }, // newest by date (home strip matches)
     ],
     sections: [
       {

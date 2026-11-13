@@ -4,7 +4,7 @@ import { FALLBACK_HOME } from "@/lib/constants";
 
 export async function getHome() {
   "use cache";
-  cacheLife("hours");
+  cacheLife("minutes");
   cacheTag("home");
   const data = await apiGet("/settings/home");
   if (!data?.sections) throw new Error("Home settings are missing.");
@@ -25,7 +25,7 @@ export async function getSaleBanner() {
 
 export async function getDepartments() {
   "use cache";
-  cacheLife("hours");
+  cacheLife("minutes");
   cacheTag("departments");
   const data = await apiGet("/departments?withCategories=1");
   return data?.departments || [];
@@ -33,14 +33,14 @@ export async function getDepartments() {
 
 export async function getDepartment(slug) {
   "use cache";
-  cacheLife("hours");
+  cacheLife("minutes");
   cacheTag("departments");
   return apiGet(`/departments/${slug}`);
 }
 
 export async function getCategory(department, slug) {
   "use cache";
-  cacheLife("hours");
+  cacheLife("minutes");
   cacheTag("departments");
   return apiGet(`/categories/${department}/${slug}`);
 }

@@ -22,7 +22,7 @@ function stripMeta(section) {
       title: "New arrivals",
       text: "Fresh toys just added to the shop.",
       icon: Sparkles,
-      moreHref: "/search?sort=new&isNew=1",
+      moreHref: "/search?sort=new",
       hot: false,
       shell: "bg-white",
     };
@@ -41,9 +41,10 @@ export async function ProductStrip({ section }) {
   const config = section.config || {};
   const params = new URLSearchParams();
   params.set("limit", String(config.limit || 12));
-  params.set("sort", config.sort || "popular");
-  if (config.isNew) params.set("isNew", "1");
-  if (config.featured) params.set("featured", "1");
+  const isNewStrip = Boolean(config.isNew) || /new/i.test(section.title || "");
+  // Home "New arrivals" shows newest products by date — don't require the New badge flag.
+  params.set("sort", isNewStrip ? "new" : config.sort || "popular");
+  if (config.featured && !isNewStrip) params.set("featured", "1");
   if (config.department) params.set("department", config.department);
   if (config.onSale) params.set("onSale", "1");
 

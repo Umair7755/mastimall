@@ -13,7 +13,7 @@ import {
   PageHeader,
   Pagination,
 } from "@/components/admin/ui";
-import { adminFetch, formatMoney } from "@/lib/admin";
+import { adminFetch, adminMutate, formatMoney } from "@/lib/admin";
 import { cn } from "@/lib/cn";
 
 function ActionBtn({ href, onClick, disabled, tone = "slate", children, title }) {
@@ -100,10 +100,11 @@ export default function AdminProductsPage() {
     if (!ok) return;
     setBusyId(row.id);
     try {
-      await adminFetch(`/admin/products/${row.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: nextStatus }),
-      });
+      await adminMutate(
+        `/admin/products/${row.id}`,
+        { method: "PATCH", body: JSON.stringify({ status: nextStatus }) },
+        ["products", "home", "departments", `product:${row.slug}`]
+      );
       await load();
     } catch (err) {
       setError(err.message);
@@ -119,7 +120,12 @@ export default function AdminProductsPage() {
     if (!ok) return;
     setBusyId(row.id);
     try {
-      await adminFetch(`/admin/products/${row.id}`, { method: "DELETE" });
+      await adminMutate(`/admin/products/${row.id}`, { method: "DELETE" }, [
+        "products",
+        "home",
+        "departments",
+        `product:${row.slug}`,
+      ]);
       await load();
     } catch (err) {
       setError(err.message);

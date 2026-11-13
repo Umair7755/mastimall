@@ -8,6 +8,8 @@ import { Header } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { ShopSheet } from "@/components/layout/ShopSheet";
 import { CartDrawer } from "@/components/cart/CartDrawer";
+import { LiveStoreRefresh } from "@/components/layout/LiveStoreRefresh";
+import { HelpChat } from "@/components/support/HelpChat";
 import { Providers } from "@/components/providers/Providers";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { loadShell } from "@/lib/data";
@@ -80,6 +82,8 @@ async function StorefrontChrome({ children }) {
       <MobileNav />
       <CartDrawer shopHref={shopHref} />
       <ShopSheet departments={departments} />
+      <HelpChat />
+      <LiveStoreRefresh />
     </>
   );
 }

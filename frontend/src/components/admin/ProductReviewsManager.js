@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, Star, Trash2, X } from "lucide-react";
 import { AdminButton, AdminField, AdminInput, AdminSelect, AdminTextarea, Badge, Card, CardHeader } from "@/components/admin/ui";
-import { adminFetch } from "@/lib/admin";
+import { adminFetch, adminMutate } from "@/lib/admin";
 import { cn } from "@/lib/cn";
 
 const EMPTY = {
@@ -93,12 +93,14 @@ export function ProductReviewsManager({ productId }) {
       text: form.text.trim(),
       rating: Number(form.rating),
     };
+    const tags = ["products", meta?.slug ? `product:${meta.slug}` : null].filter(Boolean);
     try {
       if (editingId) {
-        const data = await adminFetch(`/admin/reviews/${editingId}`, {
-          method: "PATCH",
-          body: JSON.stringify(body),
-        });
+        const data = await adminMutate(
+          `/admin/reviews/${editingId}`,
+          { method: "PATCH", body: JSON.stringify(body) },
+          tags
+        );
         setReviews((current) => current.map((item) => (item.id === editingId ? data.review : item)));
         if (data.rating) {
           setMeta((current) =>
@@ -108,10 +110,11 @@ export function ProductReviewsManager({ productId }) {
           );
         }
       } else {
-        const data = await adminFetch(`/admin/products/${productId}/reviews`, {
-          method: "POST",
-          body: JSON.stringify(body),
-        });
+        const data = await adminMutate(
+          `/admin/products/${productId}/reviews`,
+          { method: "POST", body: JSON.stringify(body) },
+          tags
+        );
         setReviews((current) => [data.review, ...current]);
         if (data.rating) {
           setMeta((current) =>
@@ -133,8 +136,9 @@ export function ProductReviewsManager({ productId }) {
     const ok = window.confirm(`Delete review by “${review.name}”? Product rating will update automatically.`);
     if (!ok) return;
     setPending(true);
+    const tags = ["products", meta?.slug ? `product:${meta.slug}` : null].filter(Boolean);
     try {
-      const data = await adminFetch(`/admin/reviews/${review.id}`, { method: "DELETE" });
+      const data = await adminMutate(`/admin/reviews/${review.id}`, { method: "DELETE" }, tags);
       setReviews((current) => current.filter((item) => item.id !== review.id));
       if (data.rating) {
         setMeta((current) =>

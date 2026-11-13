@@ -1,10 +1,12 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { OrderView } from "@/components/order/OrderView";
 import { getOrder } from "@/lib/data";
 
 export const metadata = { title: "Order", robots: { index: false, follow: false } };
 
 async function OrderContent({ params, searchParams }) {
+  await connection(); // always live — order status must not be cached
   const { orderNumber } = await params;
   const query = await searchParams;
   let order = null;

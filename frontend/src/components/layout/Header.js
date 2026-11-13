@@ -70,21 +70,24 @@ function navMeta(item) {
   return { Icon: Sparkles, label: label || "Shop", hint: label, tone: "default" };
 }
 
-function HeaderAction({ href, onClick, icon: Icon, label, tone = "soft", badge, id }) {
+function HeaderAction({ href, onClick, icon: Icon, label, tone = "soft", badge, id, compactOnMobile = false }) {
   const tones = {
     soft: "border-line/70 bg-white text-ink hover:border-brand/30 hover:bg-brand-soft hover:text-brand",
     cart: "border-brand/20 bg-brand text-white hover:bg-brand-dark",
     love: "border-coral/20 bg-[#fff1f4] text-[#be123c] hover:bg-coral hover:text-white",
   };
   const className = cn(
-    "relative inline-flex h-12 cursor-pointer items-center gap-2 rounded-full border px-3.5 text-sm font-semibold transition",
+    "relative inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border text-sm font-semibold transition sm:h-12",
+    compactOnMobile ? "px-2.5 sm:px-3.5" : "px-3.5",
     tones[tone] || tones.soft
   );
 
   const content = (
     <>
       <Icon aria-hidden="true" size={18} strokeWidth={2.25} />
-      <span className="font-display text-[15px] leading-none">{label}</span>
+      <span className={cn("font-display text-[15px] leading-none", compactOnMobile && "hidden sm:inline")}>
+        {label}
+      </span>
       {badge}
     </>
   );
@@ -184,21 +187,22 @@ export function Header({ nav = [], departments = [] }) {
       )}
     >
       <div className={`${CONTAINER} py-3`}>
-        <div className="flex items-center gap-2 lg:gap-5">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2 lg:gap-5">
           <button
             type="button"
             onClick={openShop}
-            className="inline-flex h-12 items-center gap-2 rounded-full bg-ink px-4 font-display text-base font-semibold text-white lg:hidden"
+            aria-label="Open menu"
+            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-ink px-3 font-display text-base font-semibold text-white sm:h-12 sm:px-4 lg:hidden"
           >
             <Menu aria-hidden="true" size={18} />
-            Menu
+            <span className="hidden min-[400px]:inline">Menu</span>
           </button>
 
-          <Link href="/" className="shrink-0" aria-label="Masti Mall home">
+          <Link href="/" className="min-w-0 shrink overflow-hidden" aria-label="Masti Mall home">
             <MastiLogo
               height={72}
               priority
-              className="!h-14 sm:!h-16 lg:!h-[4.75rem]"
+              className="!h-11 max-w-full sm:!h-14 lg:!h-[4.75rem]"
             />
           </Link>
 
@@ -206,7 +210,7 @@ export function Header({ nav = [], departments = [] }) {
             <SearchField id="store-search-desktop" />
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
             {welcomeName ? (
               <Link
                 href="/account"
@@ -233,6 +237,7 @@ export function Header({ nav = [], departments = [] }) {
               tone="cart"
               onClick={openDrawer}
               badge={cartBadge}
+              compactOnMobile
             />
           </div>
         </div>

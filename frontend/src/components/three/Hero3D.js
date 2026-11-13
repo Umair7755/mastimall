@@ -47,12 +47,6 @@ export default function Hero3D() {
         </div>
       )}
 
-      <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold text-ink-muted shadow-soft backdrop-blur">
-          <span className="h-1.5 w-1.5 rounded-full bg-sun" />
-          Toys & décor · move your mouse
-        </span>
-      </div>
     </motion.div>
   );
 }

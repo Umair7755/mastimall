@@ -185,3 +185,19 @@ export const adminReviewUpdateSchema = z
     city: z.string().trim().max(60).optional(),
   })
   .refine((body) => Object.keys(body).length > 0, { message: 'Provide at least one field to update.' });
+
+export const supportStartSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  phone: z.string().trim().min(10).max(20),
+  body: z.string().trim().min(4).max(2000),
+  publicId: z.string().trim().min(8).max(64).optional(),
+});
+
+export const supportReplySchema = z.object({
+  body: z.string().trim().min(1).max(2000),
+});
+
+export const supportAdminStatusSchema = z.object({
+  status: z.enum(['open', 'closed']).optional(),
+  markRead: z.boolean().optional(),
+});

@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { MapPin, Phone, ShoppingBag } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { OrderCelebration } from "@/components/order/OrderCelebration";
 import { OrderStatusTrack } from "@/components/order/OrderStatusTrack";
 import { TrackForm } from "@/components/order/TrackForm";
+import { ORDERS_UPDATED_EVENT } from "@/components/layout/LiveStoreRefresh";
+import { apiFetch } from "@/lib/browser";
 import { formatPkr } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 export function OrderView({ orderNumber, order, error, placed }) {
+  const searchParams = useSearchParams();
   const [saved, setSaved] = useState(order);
 
   useEffect(() => {
@@ -30,6 +34,29 @@ export function OrderView({ orderNumber, order, error, placed }) {
     if (!placed) return;
     window.scrollTo(0, 0);
   }, [placed]);
+
+  // Live status when admin updates the order.
+  useEffect(() => {
+    async function reload() {
+      const phone = searchParams.get("phone") || saved?.customer?.phone;
+      if (!phone || !orderNumber) return;
+      try {
+        const data = await apiFetch(`/orders/${encodeURIComponent(orderNumber)}?phone=${encodeURIComponent(phone)}`);
+        if (data?.order) {
+          setSaved(data.order);
+          try {
+            sessionStorage.setItem("mastimall-last-order", JSON.stringify(data.order));
+          } catch {
+            /* ignore */
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener(ORDERS_UPDATED_EVENT, reload);
+    return () => window.removeEventListener(ORDERS_UPDATED_EVENT, reload);
+  }, [orderNumber, searchParams, saved?.customer?.phone]);
 
   return (
     <div className={cn("mx-auto max-w-2xl px-4", placed ? "py-4 lg:py-5" : "py-8")}>

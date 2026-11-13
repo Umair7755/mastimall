@@ -15,6 +15,7 @@ import { Notify } from './models/Notify.js';
 import { presentCategory, presentDepartment, presentProduct } from './lib/present.js';
 import { presentReview, refreshProductRating } from './lib/reviews.js';
 import { pingRevalidate } from './lib/revalidate.js';
+import { bumpOrdersRevision } from './lib/catalogRevision.js';
 import { AGE_BANDS, AUDIENCES, ORDER_STATUSES, RESERVED_SLUGS } from './constants.js';
 import { DEFAULT_SALE_BANNER } from './lib/saleBanner.js';
 import {
@@ -27,12 +28,18 @@ import {
   productSchema,
   saleBannerSchema,
   orderStatusSchema,
+  supportAdminStatusSchema,
+  supportReplySchema,
 } from './validators.js';
 import {
   requireMallAdmin,
   setMallCookie,
   signMallToken,
 } from './middleware/mallAuth.js';
+import { SupportThread } from './models/SupportThread.js';
+import { SupportMessage } from './models/SupportMessage.js';
+import { appendMessage, presentMessage, presentThread } from './lib/support.js';
+import { readSupportRevision } from './lib/catalogRevision.js';
 
 const admin = Router();
 const writeLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 80 });
@@ -577,6 +584,9 @@ admin.patch(
       if (req.body.courier != null) order.shipping.courier = req.body.courier;
     }
     await order.save();
+    bumpOrdersRevision().catch((error) => {
+      console.error('Orders revision bump failed', error.message);
+    });
     res.json({ order: presentAdminOrder(order) });
   })
 );
@@ -891,6 +901,91 @@ admin.post(
     const category = await Category.create({ ...req.body, slug, department: department._id });
     pingRevalidate(['departments', 'home']);
     res.status(201).json({ category: presentCategory(category) });
+  })
+);
+
+admin.get(
+  '/admin/support/revision',
+  requireMallAdmin,
+  asyncHandler(async (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json(await readSupportRevision());
+  })
+);
+
+admin.get(
+  '/admin/support/threads',
+  requireMallAdmin,
+  asyncHandler(async (req, res) => {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+    const query = {};
+    if (req.query.status === 'open' || req.query.status === 'closed') query.status = req.query.status;
+    if (req.query.q) {
+      const pattern = new RegExp(escapeRegex(String(req.query.q).trim()), 'i');
+      query.$or = [{ name: pattern }, { phone: pattern }, { lastPreview: pattern }];
+    }
+    const [total, items] = await Promise.all([
+      SupportThread.countDocuments(query),
+      SupportThread.find(query)
+        .sort({ lastMessageAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+    ]);
+    const unread = await SupportThread.aggregate([
+      { $group: { _id: null, count: { $sum: '$unreadAdmin' } } },
+    ]);
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      total,
+      page,
+      pages: Math.max(1, Math.ceil(total / limit)),
+      unreadTotal: unread[0]?.count || 0,
+      items: items.map(presentThread),
+    });
+  })
+);
+
+admin.get(
+  '/admin/support/threads/:id',
+  requireMallAdmin,
+  asyncHandler(async (req, res) => {
+    const thread = await SupportThread.findById(req.params.id);
+    if (!thread) throw new HttpError(404, 'Conversation not found');
+    if (thread.unreadAdmin) {
+      thread.unreadAdmin = 0;
+      await thread.save();
+    }
+    const messages = await SupportMessage.find({ thread: thread._id }).sort({ createdAt: 1 }).limit(300);
+    res.set('Cache-Control', 'no-store');
+    res.json({ thread: presentThread(thread), messages: messages.map(presentMessage) });
+  })
+);
+
+admin.post(
+  '/admin/support/threads/:id/reply',
+  requireMallAdmin,
+  writeLimit,
+  validate(supportReplySchema),
+  asyncHandler(async (req, res) => {
+    const thread = await SupportThread.findById(req.params.id);
+    if (!thread) throw new HttpError(404, 'Conversation not found');
+    const message = await appendMessage(thread, { from: 'admin', body: req.body.body });
+    res.status(201).json({ thread: presentThread(thread), message: presentMessage(message) });
+  })
+);
+
+admin.patch(
+  '/admin/support/threads/:id',
+  requireMallAdmin,
+  validate(supportAdminStatusSchema),
+  asyncHandler(async (req, res) => {
+    const thread = await SupportThread.findById(req.params.id);
+    if (!thread) throw new HttpError(404, 'Conversation not found');
+    if (req.body.status) thread.status = req.body.status;
+    if (req.body.markRead) thread.unreadAdmin = 0;
+    await thread.save();
+    res.json({ thread: presentThread(thread) });
   })
 );
 

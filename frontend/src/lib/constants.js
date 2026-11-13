@@ -95,7 +95,7 @@ export const FALLBACK_HOME = {
     { label: "Toys", href: "/toys", kind: "department" },
     { label: "Decor", href: null, soon: true },
     { label: "Deals", href: "/search?onSale=1" },
-    { label: "New arrivals", href: "/search?sort=new&isNew=1" },
+    { label: "New arrivals", href: "/search?sort=new" },
   ],
   sections: [
     {

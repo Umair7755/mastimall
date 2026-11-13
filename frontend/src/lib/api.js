@@ -3,6 +3,8 @@ export async function apiGet(path) {
   const base = process.env.API_URL || "http://127.0.0.1:4000/api";
   const response = await fetch(`${base}${path}`, {
     headers: { accept: "application/json" },
+    // Rely on `"use cache"` + tags in data.js — don't keep a second Next fetch cache.
+    cache: "no-store",
   });
   if (response.status === 404) return null;
   if (!response.ok) {

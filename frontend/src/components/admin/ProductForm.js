@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { adminFetch, slugify } from "@/lib/admin";
+import { adminFetch, adminMutate, slugify } from "@/lib/admin";
 import {
   AdminButton,
   AdminField,
@@ -26,7 +26,7 @@ const EMPTY = {
   audience: [],
   ageBands: [],
   status: "active",
-  isNew: false,
+  isNew: true,
   isFeatured: false,
   fragile: false,
   imageUrl: "",
@@ -123,15 +123,17 @@ export function ProductForm({ productId = null }) {
 
     try {
       if (productId) {
-        await adminFetch(`/admin/products/${productId}`, {
-          method: "PATCH",
-          body: JSON.stringify(payload),
-        });
+        await adminMutate(
+          `/admin/products/${productId}`,
+          { method: "PATCH", body: JSON.stringify(payload) },
+          ["products", "home", "departments", `product:${payload.slug}`]
+        );
       } else {
-        await adminFetch("/admin/products", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
+        await adminMutate(
+          "/admin/products",
+          { method: "POST", body: JSON.stringify(payload) },
+          ["products", "home", "departments", `product:${payload.slug}`]
+        );
       }
       router.push("/admin/products");
     } catch (err) {
