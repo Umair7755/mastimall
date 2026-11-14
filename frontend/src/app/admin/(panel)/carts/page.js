@@ -29,9 +29,12 @@ function formatWhen(value) {
 }
 
 function storeBaseUrl() {
+  // Prefer the domain the admin is actually on — avoids bad Vercel placeholders.
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin.replace(/\/$/, "");
+  }
   const fromEnv = String(process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
-  if (fromEnv) return fromEnv;
-  if (typeof window !== "undefined" && window.location?.origin) return window.location.origin;
+  if (fromEnv && !/placeholder/i.test(fromEnv)) return fromEnv;
   return "https://mastimall.com";
 }
 
