@@ -4,15 +4,32 @@ import { useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-/** Horizontal scroller with bold arrows on every screen size (swipe still works). */
-export function Carousel({ children, className, itemClassName, gapClassName, autoPlay = true }) {
+/** Horizontal scroller — calm autoplay, one-card steps. Mall picks marquee is separate. */
+export function Carousel({
+  children,
+  className,
+  itemClassName,
+  gapClassName,
+  autoPlay = true,
+  intervalMs = 6200,
+}) {
   const scroller = useRef(null);
   const pauseUntil = useRef(0);
+
+  function stepSize(node) {
+    const item = node.querySelector("[data-carousel-item]");
+    if (item) {
+      const styles = window.getComputedStyle(node);
+      const gap = Number.parseFloat(styles.columnGap || styles.gap || "0") || 0;
+      return Math.round(item.getBoundingClientRect().width + gap);
+    }
+    return Math.max(180, Math.round(node.clientWidth * 0.55));
+  }
 
   function scrollBy(dir) {
     const node = scroller.current;
     if (!node) return;
-    const amount = Math.max(200, Math.round(node.clientWidth * 0.7));
+    const amount = stepSize(node);
     const max = node.scrollWidth - node.clientWidth;
     let next = node.scrollLeft + dir * amount;
     if (dir > 0 && node.scrollLeft >= max - 8) next = 0;
@@ -33,10 +50,10 @@ export function Carousel({ children, className, itemClassName, gapClassName, aut
       if (Date.now() < pauseUntil.current) return;
       if (node.scrollWidth <= node.clientWidth + 8) return;
       scrollBy(1);
-    }, 4200);
+    }, intervalMs);
 
     function pause() {
-      pauseUntil.current = Date.now() + 12000;
+      pauseUntil.current = Date.now() + 14000;
     }
 
     node.addEventListener("pointerdown", pause, { passive: true });
@@ -49,28 +66,33 @@ export function Carousel({ children, className, itemClassName, gapClassName, aut
       node.removeEventListener("touchstart", pause);
       node.removeEventListener("wheel", pause);
     };
-  }, [autoPlay, children]);
+  }, [autoPlay, children, intervalMs]);
 
+  // Same chrome as Mall picks; sit in a slim side gutter (not on cards, not far out).
   const arrowClass =
-    "absolute top-[42%] z-20 grid -translate-y-1/2 place-items-center rounded-full " +
+    "absolute top-[38%] z-20 grid -translate-y-1/2 place-items-center rounded-full " +
     "border-2 border-white bg-ink text-sun " +
     "shadow-[0_6px_16px_-6px_rgb(15_23_42_/_0.5)] ring-1 ring-ink/10 " +
     "transition active:scale-95 hover:bg-brand hover:text-white " +
     "h-8 w-8 sm:h-10 sm:w-10 lg:h-11 lg:w-11";
 
   return (
-    <div className={cn("relative px-0", className)}>
+    <div className={cn("relative px-4 sm:px-5", className)}>
       <div
         ref={scroller}
         className={cn(
-          "no-scrollbar flex overflow-x-auto overscroll-x-contain pb-1",
+          "no-scrollbar flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth pb-1",
           gapClassName || "gap-3 sm:gap-4"
         )}
-        style={{ overflowAnchor: "none", scrollSnapType: "none", WebkitOverflowScrolling: "touch" }}
+        style={{ overflowAnchor: "none", WebkitOverflowScrolling: "touch" }}
       >
         {Array.isArray(children)
           ? children.map((child, index) => (
-              <div key={child.key || index} className={cn("shrink-0", itemClassName)}>
+              <div
+                key={child.key || index}
+                data-carousel-item
+                className={cn("shrink-0 snap-start", itemClassName)}
+              >
                 {child}
               </div>
             ))
@@ -80,7 +102,7 @@ export function Carousel({ children, className, itemClassName, gapClassName, aut
         type="button"
         aria-label="Previous"
         onClick={() => {
-          pauseUntil.current = Date.now() + 8000;
+          pauseUntil.current = Date.now() + 10000;
           scrollBy(-1);
         }}
         className={cn(arrowClass, "left-0")}
@@ -91,7 +113,7 @@ export function Carousel({ children, className, itemClassName, gapClassName, aut
         type="button"
         aria-label="Next"
         onClick={() => {
-          pauseUntil.current = Date.now() + 8000;
+          pauseUntil.current = Date.now() + 10000;
           scrollBy(1);
         }}
         className={cn(arrowClass, "right-0")}
