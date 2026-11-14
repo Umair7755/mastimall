@@ -51,6 +51,11 @@ import {
   setMallCookie,
   signMallToken,
 } from './middleware/mallAuth.js';
+import {
+  assertNotBlocked,
+  checkAccessStatus,
+  BLACKLIST_MESSAGE,
+} from './lib/blocklist.js';
 
 const mall = Router();
 
@@ -572,6 +577,36 @@ mall.get(
   })
 );
 
+mall.get(
+  '/access/status',
+  analyticsLimit,
+  optionalMallAuth,
+  asyncHandler(async (req, res) => {
+    let visitorId = String(req.cookies?.[VISITOR_COOKIE] || '').trim();
+    if (!visitorId || visitorId.length > 64) {
+      visitorId = newTrackingId();
+    }
+    setTrackingCookie(res, VISITOR_COOKIE, visitorId);
+
+    const guestId = String(req.cookies?.[GUEST_CART_COOKIE] || '').trim();
+    const phone = String(req.query?.phone || '').trim();
+    const email = String(req.query?.email || '').trim();
+
+    const status = await checkAccessStatus({
+      userId: req.mallUserId || undefined,
+      guestId: guestId || undefined,
+      visitorId,
+      phone: phone || undefined,
+      email: email || undefined,
+    });
+
+    res.json({
+      blocked: status.blocked,
+      reason: status.blocked ? status.reason || BLACKLIST_MESSAGE : '',
+    });
+  })
+);
+
 mall.post(
   '/analytics/visit',
   analyticsLimit,
@@ -587,6 +622,13 @@ mall.post(
       visitorId = newTrackingId();
     }
     setTrackingCookie(res, VISITOR_COOKIE, visitorId);
+
+    const guestId = String(req.cookies?.[GUEST_CART_COOKIE] || '').trim();
+    await assertNotBlocked({
+      userId: req.mallUserId || undefined,
+      guestId: guestId || undefined,
+      visitorId,
+    });
 
     const day = karachiDayKey();
     await MallVisit.updateOne(
@@ -616,9 +658,18 @@ mall.post(
     }
     setTrackingCookie(res, GUEST_CART_COOKIE, guestId);
 
+    const visitorId = String(req.cookies?.[VISITOR_COOKIE] || '').trim();
+    const contactIn = req.body?.contact || {};
+    await assertNotBlocked({
+      userId: req.mallUserId || undefined,
+      guestId,
+      visitorId: visitorId || undefined,
+      phone: contactIn.phone || undefined,
+      email: contactIn.email || undefined,
+    });
+
     const items = normalizeCartItems(req.body?.items);
     const itemCount = cartItemCount(items);
-    const contactIn = req.body?.contact || {};
     let contact = {
       name: String(contactIn.name || '').trim().slice(0, 80),
       phone: String(contactIn.phone || '').trim().slice(0, 20),
@@ -757,6 +808,16 @@ mall.post(
       throw new HttpError(400, 'Phone number should look like 03XX-XXXXXXX.');
     }
 
+    const guestId = String(req.cookies?.[GUEST_CART_COOKIE] || '').trim();
+    const visitorId = String(req.cookies?.[VISITOR_COOKIE] || '').trim();
+    await assertNotBlocked({
+      userId: req.mallUserId || undefined,
+      guestId: guestId || undefined,
+      visitorId: visitorId || undefined,
+      phone,
+      email: req.body.customer?.email || undefined,
+    });
+
     const ids = req.body.items.map((item) => item.productId);
     const products = await Product.find({ _id: { $in: ids }, status: 'active' });
     const byId = new Map(products.map((product) => [String(product._id), product]));
@@ -835,7 +896,6 @@ mall.post(
     console.log(`[masti-mall] new order ${order.orderNumber} for ${phone}. Confirm on WhatsApp.`);
     pingRevalidate(['products', ...lines.map((line) => `product:${line.product.slug}`)]);
 
-    const guestId = String(req.cookies?.[GUEST_CART_COOKIE] || '').trim();
     await markCartConverted({
       guestId: guestId || undefined,
       userId: req.mallUserId || undefined,
@@ -876,6 +936,14 @@ mall.post(
     const phone = normalizePhone(req.body.phone);
     if (!isPkMobile(phone)) throw new HttpError(400, 'Phone number should look like 03XX-XXXXXXX.');
     const email = req.body.email.toLowerCase().trim();
+    const guestId = String(req.cookies?.[GUEST_CART_COOKIE] || '').trim();
+    const visitorId = String(req.cookies?.[VISITOR_COOKIE] || '').trim();
+    await assertNotBlocked({
+      guestId: guestId || undefined,
+      visitorId: visitorId || undefined,
+      phone,
+      email,
+    });
     const existing = await MallCustomer.findOne({ email }).select('_id');
     if (existing) throw new HttpError(409, 'An account with this email already exists.');
     const passwordHash = await bcrypt.hash(req.body.password, 10);
@@ -901,6 +969,13 @@ mall.post(
     if (!customer) throw new HttpError(401, 'Email or password is wrong.');
     const ok = await bcrypt.compare(req.body.password, customer.passwordHash || '');
     if (!ok) throw new HttpError(401, 'Email or password is wrong.');
+    await assertNotBlocked({
+      userId: customer._id,
+      phone: customer.phone || undefined,
+      email: customer.email || undefined,
+      guestId: String(req.cookies?.[GUEST_CART_COOKIE] || '').trim() || undefined,
+      visitorId: String(req.cookies?.[VISITOR_COOKIE] || '').trim() || undefined,
+    });
     setMallCookie(res, signMallToken(customer));
     res.json({ customer: publicCustomer(customer) });
   })

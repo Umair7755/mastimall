@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+  Ban,
   Image as ImageIcon,
   LayoutDashboard,
   LogOut,
@@ -25,6 +26,7 @@ const NAV = [
   { href: "/admin/carts", label: "Carts", icon: ShoppingCart, badgeKey: "activeCarts" },
   { href: "/admin/support", label: "Support", icon: MessageCircle, badgeKey: "supportUnread" },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/blocklist", label: "Blocklist", icon: Ban },
   { href: "/admin/banner", label: "Sale banner", icon: ImageIcon },
 ];
 

@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/Button";
 import { Field, Input, TextArea } from "@/components/ui/Input";
 import { useCheckoutSettings } from "@/hooks/useCheckoutSettings";
 import { useQuote } from "@/hooks/useQuote";
-import { apiFetch } from "@/lib/browser";
+import { signalBlacklisted } from "@/components/access/AccessGate";
+import { apiFetch, isBlacklistedError } from "@/lib/browser";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { readDraft, writeDraft } from "@/lib/draft";
 import { formatPkr } from "@/lib/format";
@@ -258,6 +259,10 @@ export function CheckoutForm() {
       clearReceipt();
       router.push(`/order/${data.orderNumber}?placed=1`);
     } catch (err) {
+      if (isBlacklistedError(err)) {
+        signalBlacklisted(err.message);
+        return;
+      }
       setServerError(err.message || "Could not place the order. Please try again.");
     }
   }

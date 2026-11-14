@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Ban, PackageCheck, RotateCcw, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Ban, PackageCheck, RotateCcw, ShoppingBag, ShieldOff } from "lucide-react";
 import { StatusPieChart, UserOrdersTrendChart } from "@/components/admin/Charts";
 import {
+  AdminButton,
   AdminSelect,
   Badge,
   Card,
@@ -43,6 +44,7 @@ export default function AdminUserDetailPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [blockBusy, setBlockBusy] = useState(false);
 
   async function load({ nextStatus = status, nextPage = page, nextLimit = limit } = {}) {
     if (!id) return;
@@ -67,6 +69,31 @@ export default function AdminUserDetailPage() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, page, limit, status]);
+
+  async function toggleBlock() {
+    const customer = data?.customer;
+    if (!customer || customer.role === "admin") return;
+    const nextBlocked = !customer.blocked;
+    const ok = window.confirm(
+      nextBlocked
+        ? `Block ${customer.name || customer.email || "this user"}?\n\nThey will see a blacklist popup and cannot shop.`
+        : `Unblock ${customer.name || customer.email || "this user"}?`
+    );
+    if (!ok) return;
+    setBlockBusy(true);
+    setError("");
+    try {
+      const path = nextBlocked
+        ? `/admin/customers/${customer.id}/block`
+        : `/admin/customers/${customer.id}/unblock`;
+      const result = await adminFetch(path, { method: "POST", body: JSON.stringify({}) });
+      setData((prev) => (prev ? { ...prev, customer: result.customer || { ...customer, blocked: nextBlocked } } : prev));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBlockBusy(false);
+    }
+  }
 
   if (loading && !data) {
     return <p className="text-sm text-slate-500">Loading user order history…</p>;
@@ -101,6 +128,19 @@ export default function AdminUserDetailPage() {
               Users
             </Link>
             <Badge tone={customer.role === "admin" ? "indigo" : "slate"}>{customer.role}</Badge>
+            {customer.blocked ? <Badge tone="rose">Blocked</Badge> : null}
+            {customer.role !== "admin" ? (
+              <AdminButton
+                type="button"
+                variant={customer.blocked ? "secondary" : "danger"}
+                className="inline-flex h-10 items-center gap-1.5 text-sm"
+                disabled={blockBusy}
+                onClick={toggleBlock}
+              >
+                {customer.blocked ? <ShieldOff size={14} /> : <Ban size={14} />}
+                {blockBusy ? "Saving…" : customer.blocked ? "Unblock" : "Block user"}
+              </AdminButton>
+            ) : null}
           </div>
         }
       />

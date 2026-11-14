@@ -7,7 +7,7 @@ import { AdminButton, AdminField, AdminInput, Card } from "@/components/admin/ui
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@mastimall.pk");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -41,6 +41,7 @@ export default function AdminLoginPage() {
               onChange={(event) => setEmail(event.target.value)}
               required
               autoComplete="username"
+              placeholder="Email"
             />
           </AdminField>
           <AdminField label="Password">
@@ -50,6 +51,7 @@ export default function AdminLoginPage() {
               onChange={(event) => setPassword(event.target.value)}
               required
               autoComplete="current-password"
+              placeholder="Password"
             />
           </AdminField>
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
@@ -57,7 +59,6 @@ export default function AdminLoginPage() {
             {pending ? "Signing in…" : "Sign in"}
           </AdminButton>
         </form>
-        <p className="mt-4 text-xs text-slate-500">Default: admin@mastimall.pk / Admin@12345</p>
       </Card>
     </div>
   );

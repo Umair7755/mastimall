@@ -11,6 +11,8 @@ const customerSchema = new Schema(
     addresses: [{ label: String, city: String, address: String }],
     wishlist: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
     role: { type: String, enum: ['customer', 'admin'], default: 'customer' },
+    /** Storefront lockout — kept in sync with MallBlocklist user rows */
+    blocked: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );

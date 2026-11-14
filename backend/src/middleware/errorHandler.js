@@ -19,5 +19,7 @@ export function errorHandler(err, _req, res, _next) {
 
   const status = err.status || 500;
   if (status === 500) console.error(err);
-  res.status(status).json({ error: status === 500 ? 'Server error' : err.message });
+  const body = { error: status === 500 ? 'Server error' : err.message };
+  if (err.code) body.code = err.code;
+  res.status(status).json(body);
 }

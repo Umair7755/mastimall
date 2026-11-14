@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { History, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import {
   AdminButton,
   AdminInput,
@@ -15,6 +15,7 @@ import {
   StatCard,
 } from "@/components/admin/ui";
 import { adminFetch } from "@/lib/admin";
+import { cn } from "@/lib/cn";
 
 export default function AdminUsersPage() {
   const [q, setQ] = useState("");
@@ -24,6 +25,7 @@ export default function AdminUsersPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState("");
 
   async function load({ nextQ = q, nextRole = role, nextPage = page, nextLimit = limit } = {}) {
     setLoading(true);
@@ -50,11 +52,43 @@ export default function AdminUsersPage() {
   }, [page, limit]);
 
   async function setUserRole(id, nextRole) {
-    await adminFetch(`/admin/customers/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ role: nextRole }),
-    });
-    load();
+    setBusyId(`role-${id}`);
+    setError("");
+    try {
+      await adminFetch(`/admin/customers/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ role: nextRole }),
+      });
+      await load();
+    } catch (err) {
+      setError(err.message || "Could not update role");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function toggleBlock(row) {
+    if (row.role === "admin") return;
+    const nextBlocked = !row.blocked;
+    const ok = window.confirm(
+      nextBlocked
+        ? `Block ${row.name || row.email || "this user"}?\n\nThey will see a blacklist popup and cannot shop.`
+        : `Unblock ${row.name || row.email || "this user"}?`
+    );
+    if (!ok) return;
+    setBusyId(row.id);
+    setError("");
+    try {
+      await adminFetch(
+        nextBlocked ? `/admin/customers/${row.id}/block` : `/admin/customers/${row.id}/unblock`,
+        { method: "POST", body: JSON.stringify({}) }
+      );
+      await load();
+    } catch (err) {
+      setError(err.message || "Could not update block status");
+    } finally {
+      setBusyId("");
+    }
   }
 
   function search(event) {
@@ -68,31 +102,28 @@ export default function AdminUsersPage() {
       key: "user",
       label: "User",
       render: (row) => (
-        <div>
+        <div className="min-w-[160px]">
           <p className="font-semibold text-slate-900">{row.name || "—"}</p>
-          <p className="text-xs text-slate-500">{row.email}</p>
+          <p className="mt-0.5 truncate text-xs text-slate-500">{row.email || "—"}</p>
         </div>
       ),
     },
-    { key: "phone", label: "Phone", render: (row) => row.phone || "—" },
     {
-      key: "role",
-      label: "Role",
-      render: (row) => <Badge tone={row.role === "admin" ? "indigo" : "slate"}>{row.role}</Badge>,
+      key: "phone",
+      label: "Phone",
+      render: (row) => <span className="tabular-nums text-slate-600">{row.phone || "—"}</span>,
     },
-    { key: "wishlistCount", label: "Wishlist" },
+    {
+      key: "status",
+      label: "Status",
+      render: (row) =>
+        row.blocked ? <Badge tone="rose">Blocked</Badge> : <Badge tone="green">Active</Badge>,
+    },
     {
       key: "orders",
       label: "Orders",
       render: (row) => (
-        <div>
-          <p className="font-semibold tabular-nums text-slate-900">{row.orderCount || 0}</p>
-          {(row.cancelledCount || 0) > 0 ? (
-            <p className="text-[11px] font-semibold text-rose-600">{row.cancelledCount} cancelled</p>
-          ) : (
-            <p className="text-[11px] text-slate-400">No cancels</p>
-          )}
-        </div>
+        <span className="font-semibold tabular-nums text-slate-900">{row.orderCount || 0}</span>
       ),
     },
     {
@@ -108,27 +139,46 @@ export default function AdminUsersPage() {
           : "—",
     },
     {
+      key: "role",
+      label: "Role",
+      render: (row) => (
+        <AdminSelect
+          className="h-8 w-[7.5rem] text-xs"
+          value={row.role}
+          disabled={busyId === `role-${row.id}`}
+          onChange={(e) => setUserRole(row.id, e.target.value)}
+        >
+          <option value="customer">Customer</option>
+          <option value="admin">Admin</option>
+        </AdminSelect>
+      ),
+    },
+    {
       key: "actions",
       label: "Actions",
-      render: (row) => (
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href={`/admin/users/${row.id}`}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
-          >
-            <History size={13} />
-            History
-          </Link>
-          <AdminSelect
-            className="w-36"
-            value={row.role}
-            onChange={(e) => setUserRole(row.id, e.target.value)}
-          >
-            <option value="customer">Customer</option>
-            <option value="admin">Admin</option>
-          </AdminSelect>
-        </div>
-      ),
+      render: (row) => {
+        const blocking = busyId === row.id;
+        return (
+          <div className="flex items-center gap-3 whitespace-nowrap">
+            <Link href={`/admin/users/${row.id}`} className="text-xs font-semibold text-indigo-600 hover:underline">
+              History
+            </Link>
+            {row.role !== "admin" ? (
+              <button
+                type="button"
+                disabled={blocking}
+                onClick={() => toggleBlock(row)}
+                className={cn(
+                  "text-xs font-semibold disabled:opacity-50",
+                  row.blocked ? "text-emerald-700 hover:underline" : "text-rose-600 hover:underline"
+                )}
+              >
+                {blocking ? "…" : row.blocked ? "Unblock" : "Block"}
+              </button>
+            ) : null}
+          </div>
+        );
+      },
     },
   ];
 

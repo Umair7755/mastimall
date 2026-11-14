@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { Ban, Trash2 } from "lucide-react";
 import {
   AdminButton,
   AdminInput,
@@ -13,6 +14,7 @@ import {
   Pagination,
 } from "@/components/admin/ui";
 import { adminFetch } from "@/lib/admin";
+import { refreshAdminBadges } from "@/lib/adminEvents";
 
 function formatWhen(value) {
   if (!value) return "—";
@@ -87,6 +89,7 @@ function AdminCartsPageInner() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState("");
 
   async function load({
     nextQ = q,
@@ -139,6 +142,48 @@ function AdminCartsPageInner() {
     event.preventDefault();
     setPage(1);
     load({ nextPage: 1 });
+  }
+
+  async function removeCart(cart) {
+    const who = cart.contact?.name || cart.contact?.phone || (cart.registered ? "registered shopper" : "guest shopper");
+    const ok = window.confirm(
+      `Remove this cart from admin?\n\n${who} · ${cart.itemCount || 0} item(s)\n\nThis only clears the saved cart entry. It cannot be undone.`
+    );
+    if (!ok) return;
+    setBusyId(cart.id);
+    setError("");
+    try {
+      await adminFetch(`/admin/carts/${cart.id}`, { method: "DELETE" });
+      setData((prev) => {
+        if (!prev) return prev;
+        const items = (prev.items || []).filter((row) => row.id !== cart.id);
+        return { ...prev, items, total: Math.max(0, (prev.total || 1) - 1) };
+      });
+      refreshAdminBadges();
+      await load({ silent: true });
+    } catch (err) {
+      setError(err.message || "Could not remove cart");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function blockShopper(cart) {
+    const who = cart.contact?.name || cart.contact?.phone || (cart.registered ? "registered shopper" : "guest shopper");
+    const ok = window.confirm(
+      `Block this shopper from the store?\n\n${who}\n\nThey will see a blacklist popup and cannot shop. Guest tracking uses their browser cart id (+ phone/email if known).`
+    );
+    if (!ok) return;
+    setBusyId(`block-${cart.id}`);
+    setError("");
+    try {
+      await adminFetch(`/admin/carts/${cart.id}/block`, { method: "POST", body: JSON.stringify({}) });
+      await load({ silent: true });
+    } catch (err) {
+      setError(err.message || "Could not block shopper");
+    } finally {
+      setBusyId("");
+    }
   }
 
   const summary = data?.summary || { open: 0, abandoned: 0, all: 0 };
@@ -242,6 +287,28 @@ function AdminCartsPageInner() {
                         View user
                       </Link>
                     ) : null}
+                    <AdminButton
+                      type="button"
+                      variant="secondary"
+                      className="inline-flex h-9 items-center gap-1.5 border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+                      disabled={busyId === `block-${cart.id}` || busyId === cart.id}
+                      onClick={() => blockShopper(cart)}
+                      title="Block shopper from store"
+                    >
+                      <Ban size={13} strokeWidth={2.25} aria-hidden="true" />
+                      {busyId === `block-${cart.id}` ? "Blocking…" : "Block"}
+                    </AdminButton>
+                    <AdminButton
+                      type="button"
+                      variant="secondary"
+                      className="inline-flex h-9 items-center gap-1.5 border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                      disabled={busyId === cart.id || busyId === `block-${cart.id}`}
+                      onClick={() => removeCart(cart)}
+                      title="Remove cart entry"
+                    >
+                      <Trash2 size={13} strokeWidth={2.25} aria-hidden="true" />
+                      {busyId === cart.id ? "Removing…" : "Remove"}
+                    </AdminButton>
                   </div>
                 </div>
 

@@ -267,7 +267,7 @@ export function DataTable({ columns, rows, empty = "No data yet." }) {
         <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] uppercase tracking-wide text-slate-500">
           <tr>
             {columns.map((col) => (
-              <th key={col.key} className="px-4 py-3 font-semibold">
+              <th key={col.key} className={cn("px-4 py-3 font-semibold", col.headerClassName)}>
                 {col.label}
               </th>
             ))}
@@ -275,9 +275,15 @@ export function DataTable({ columns, rows, empty = "No data yet." }) {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/70">
+            <tr
+              key={row.id}
+              className={cn(
+                "border-b border-slate-50 last:border-0 hover:bg-slate-50/70",
+                row.blocked && "bg-rose-50/40"
+              )}
+            >
               {columns.map((col) => (
-                <td key={col.key} className="px-4 py-3 align-middle text-slate-700">
+                <td key={col.key} className={cn("px-4 py-3.5 align-middle text-slate-700", col.className)}>
                   {col.render ? col.render(row) : row[col.key]}
                 </td>
               ))}

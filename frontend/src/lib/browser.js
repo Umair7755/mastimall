@@ -13,7 +13,15 @@ export async function apiFetch(path, options = {}) {
   if (!response.ok) {
     const error = new Error(data.error || "Something went wrong. Please try again.");
     error.status = response.status;
+    if (data.code) error.code = data.code;
     throw error;
   }
   return data;
+}
+
+export function isBlacklistedError(error) {
+  return (
+    error?.code === "BLACKLISTED" ||
+    (error?.status === 403 && /blacklist/i.test(error?.message || ""))
+  );
 }

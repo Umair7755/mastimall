@@ -2,9 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { apiFetch } from "@/lib/browser";
+import { signalBlacklisted } from "@/components/access/AccessGate";
+import { apiFetch, isBlacklistedError } from "@/lib/browser";
 import { readDraft } from "@/lib/draft";
 import { useCart } from "@/store/cart";
+
+function handleAccessError(err) {
+  if (isBlacklistedError(err)) signalBlacklisted(err.message);
+}
 
 /**
  * Storefront-only: unique daily visit beacon + debounced cart sync for abandoned carts.
@@ -32,9 +37,7 @@ export function StoreAnalytics() {
     apiFetch("/analytics/visit", {
       method: "POST",
       body: JSON.stringify({ path: pathname }),
-    }).catch(() => {
-      /* non-blocking */
-    });
+    }).catch(handleAccessError);
 
     return undefined;
   }, [pathname]);
@@ -62,9 +65,7 @@ export function StoreAnalytics() {
             email: "",
           },
         }),
-      }).catch(() => {
-        /* non-blocking */
-      });
+      }).catch(handleAccessError);
     }, 1000);
 
     return () => window.clearTimeout(timer.current);

@@ -40,10 +40,20 @@ import { SupportThread } from './models/SupportThread.js';
 import { SupportMessage } from './models/SupportMessage.js';
 import { MallVisit } from './models/MallVisit.js';
 import { MallCart } from './models/MallCart.js';
+import { MallBlocklist } from './models/MallBlocklist.js';
 import { karachiDayKey, karachiDayRange } from './lib/analyticsDay.js';
 import { ensureResumeToken } from './lib/cartResume.js';
 import { appendMessage, presentMessage, presentThread } from './lib/support.js';
 import { readSupportRevision } from './lib/catalogRevision.js';
+import { normalizePhone } from './lib/phone.js';
+import {
+  BLACKLIST_MESSAGE,
+  collapseCustomerContactBlocks,
+  deactivateBlocks,
+  normalizeEmail,
+  presentBlock,
+  upsertBlock,
+} from './lib/blocklist.js';
 
 const ABANDON_AFTER_MS = 2 * 60 * 60 * 1000;
 
@@ -170,6 +180,7 @@ function presentAdminCustomer(customer) {
     email: doc.email || '',
     phone: doc.phone || '',
     role: doc.role || 'customer',
+    blocked: Boolean(doc.blocked),
     wishlistCount: Array.isArray(doc.wishlist) ? doc.wishlist.length : 0,
     orderCount: Number(doc.orderCount) || 0,
     cancelledCount: Number(doc.cancelledCount) || 0,
@@ -783,6 +794,246 @@ admin.get(
   })
 );
 
+admin.delete(
+  '/admin/carts/:id',
+  requireMallAdmin,
+  asyncHandler(async (req, res) => {
+    const cart = await MallCart.findById(req.params.id);
+    if (!cart) throw new HttpError(404, 'Cart not found');
+    await MallCart.deleteOne({ _id: cart._id });
+    res.json({ ok: true, removed: true, id: String(cart._id) });
+  })
+);
+
+admin.get(
+  '/admin/blocklist',
+  requireMallAdmin,
+  asyncHandler(async (req, res) => {
+    // One registered user → one row. Collapse old phone/email duplicates.
+    const blockedCustomers = await MallCustomer.find({ blocked: true })
+      .select('phone email')
+      .lean();
+    await Promise.all(blockedCustomers.map((customer) => collapseCustomerContactBlocks(customer)));
+
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+    const activeOnly = String(req.query.active || '1') !== '0';
+    const query = activeOnly ? { active: true } : {};
+    if (req.query.kind) query.kind = String(req.query.kind);
+    if (req.query.q) {
+      const pattern = new RegExp(escapeRegex(String(req.query.q).trim()), 'i');
+      query.$or = [{ value: pattern }, { label: pattern }, { reason: pattern }, { visitorId: pattern }];
+    }
+    const [total, items] = await Promise.all([
+      MallBlocklist.countDocuments(query),
+      MallBlocklist.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+    ]);
+    res.json({
+      items: items.map(presentBlock),
+      total,
+      page,
+      pages: Math.max(1, Math.ceil(total / limit)),
+    });
+  })
+);
+
+admin.post(
+  '/admin/blocklist',
+  requireMallAdmin,
+  writeLimit,
+  asyncHandler(async (req, res) => {
+    const kind = String(req.body?.kind || '').trim();
+    if (!['user', 'guest', 'phone', 'email'].includes(kind)) {
+      throw new HttpError(400, 'Block kind must be user, guest, phone, or email.');
+    }
+
+    let value = String(req.body?.value || '').trim();
+    if (kind === 'phone') value = normalizePhone(value);
+    if (kind === 'email') value = normalizeEmail(value);
+    if (!value) throw new HttpError(400, 'Block value is required.');
+
+    if (kind === 'user') {
+      const customer = await MallCustomer.findById(value);
+      if (!customer) throw new HttpError(404, 'Customer not found');
+      if (customer.role === 'admin') throw new HttpError(400, 'Admins cannot be blocked.');
+      customer.blocked = true;
+      await customer.save();
+    }
+
+    const reason = String(req.body?.reason || BLACKLIST_MESSAGE).trim().slice(0, 240);
+    const label = String(req.body?.label || '').trim().slice(0, 120);
+    const visitorId = String(req.body?.visitorId || '').trim().slice(0, 64);
+
+    const block = await upsertBlock({
+      kind,
+      value,
+      visitorId,
+      reason: reason || BLACKLIST_MESSAGE,
+      label,
+      createdBy: req.mallUserId || null,
+    });
+
+    if (kind === 'user') {
+      const customer = await MallCustomer.findById(value).select('phone email name').lean();
+      await collapseCustomerContactBlocks(customer);
+    }
+
+    res.status(201).json({ block: presentBlock(block) });
+  })
+);
+
+admin.delete(
+  '/admin/blocklist/:id',
+  requireMallAdmin,
+  asyncHandler(async (req, res) => {
+    const block = await MallBlocklist.findById(req.params.id);
+    if (!block) throw new HttpError(404, 'Block not found');
+    block.active = false;
+    await block.save();
+
+    if (block.kind === 'user') {
+      await MallCustomer.updateOne({ _id: block.value }, { $set: { blocked: false } });
+    }
+
+    res.json({ ok: true, block: presentBlock(block) });
+  })
+);
+
+admin.post(
+  '/admin/customers/:id/block',
+  requireMallAdmin,
+  writeLimit,
+  asyncHandler(async (req, res) => {
+    const customer = await MallCustomer.findById(req.params.id);
+    if (!customer) throw new HttpError(404, 'Customer not found');
+    if (customer.role === 'admin') throw new HttpError(400, 'Admins cannot be blocked.');
+
+    const reason = String(req.body?.reason || BLACKLIST_MESSAGE).trim().slice(0, 240);
+    customer.blocked = true;
+    await customer.save();
+
+    const label = customer.name || customer.email || customer.phone || String(customer._id);
+    const block = await upsertBlock({
+      kind: 'user',
+      value: String(customer._id),
+      reason,
+      label,
+      createdBy: req.mallUserId || null,
+    });
+    await collapseCustomerContactBlocks(customer);
+
+    res.json({
+      customer: presentAdminCustomer(customer),
+      blocks: block ? [presentBlock(block)] : [],
+    });
+  })
+);
+
+admin.post(
+  '/admin/customers/:id/unblock',
+  requireMallAdmin,
+  writeLimit,
+  asyncHandler(async (req, res) => {
+    const customer = await MallCustomer.findById(req.params.id);
+    if (!customer) throw new HttpError(404, 'Customer not found');
+
+    customer.blocked = false;
+    await customer.save();
+
+    await deactivateBlocks({ kind: 'user', value: String(customer._id) });
+    if (customer.phone) {
+      await deactivateBlocks({ kind: 'phone', value: normalizePhone(customer.phone) });
+    }
+    if (customer.email) {
+      await deactivateBlocks({ kind: 'email', value: normalizeEmail(customer.email) });
+    }
+
+    res.json({ customer: presentAdminCustomer(customer), ok: true });
+  })
+);
+
+admin.post(
+  '/admin/carts/:id/block',
+  requireMallAdmin,
+  writeLimit,
+  asyncHandler(async (req, res) => {
+    const cart = await MallCart.findById(req.params.id);
+    if (!cart) throw new HttpError(404, 'Cart not found');
+
+    const reason = String(req.body?.reason || BLACKLIST_MESSAGE).trim().slice(0, 240);
+    const label =
+      cart.contact?.name ||
+      cart.contact?.phone ||
+      cart.contact?.email ||
+      cart.guestId ||
+      String(cart._id);
+
+    const blocks = [];
+
+    if (cart.user) {
+      const customer = await MallCustomer.findById(cart.user);
+      if (customer && customer.role !== 'admin') {
+        customer.blocked = true;
+        await customer.save();
+        blocks.push(
+          await upsertBlock({
+            kind: 'user',
+            value: String(customer._id),
+            reason,
+            label,
+            createdBy: req.mallUserId || null,
+          })
+        );
+        await collapseCustomerContactBlocks(customer);
+      }
+    } else {
+      // Guest-only: keep guest + contact signals (no registered account to hang blocked on).
+      if (cart.guestId) {
+        blocks.push(
+          await upsertBlock({
+            kind: 'guest',
+            value: cart.guestId,
+            reason,
+            label,
+            createdBy: req.mallUserId || null,
+          })
+        );
+      }
+      if (cart.contact?.phone) {
+        blocks.push(
+          await upsertBlock({
+            kind: 'phone',
+            value: normalizePhone(cart.contact.phone),
+            reason,
+            label,
+            createdBy: req.mallUserId || null,
+          })
+        );
+      }
+      if (cart.contact?.email) {
+        blocks.push(
+          await upsertBlock({
+            kind: 'email',
+            value: normalizeEmail(cart.contact.email),
+            reason,
+            label,
+            createdBy: req.mallUserId || null,
+          })
+        );
+      }
+    }
+
+    if (!blocks.filter(Boolean).length) {
+      throw new HttpError(400, 'This cart has no guest id, user, phone, or email to block.');
+    }
+
+    res.json({ ok: true, blocks: blocks.filter(Boolean).map(presentBlock) });
+  })
+);
+
 admin.patch(
   '/admin/orders/:id',
   requireMallAdmin,
@@ -884,6 +1135,7 @@ admin.get(
               email: 1,
               phone: 1,
               role: 1,
+              blocked: 1,
               wishlist: 1,
               createdAt: 1,
               orderCount: 1,

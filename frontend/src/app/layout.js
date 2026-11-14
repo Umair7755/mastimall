@@ -10,6 +10,7 @@ import { ShopSheet } from "@/components/layout/ShopSheet";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { LiveStoreRefresh } from "@/components/layout/LiveStoreRefresh";
 import { StoreAnalytics } from "@/components/analytics/StoreAnalytics";
+import { AccessGate } from "@/components/access/AccessGate";
 import { HelpChat } from "@/components/support/HelpChat";
 import { Providers } from "@/components/providers/Providers";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -25,8 +26,12 @@ export const metadata = {
   title: { default: "Masti Mall", template: "%s · Masti Mall" },
   description: "Toys + décor. Full masti. Bacchon ke toys aur ghar ka décor — cash on delivery across Pakistan.",
   icons: {
-    icon: [{ url: "/brand/masti-mall-logo.png", type: "image/png" }],
-    apple: [{ url: "/brand/masti-mall-logo.png" }],
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/brand/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/brand/favicon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/brand/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
@@ -86,6 +91,7 @@ async function StorefrontChrome({ children }) {
       <HelpChat />
       <LiveStoreRefresh />
       <StoreAnalytics />
+      <AccessGate />
     </>
   );
 }
