@@ -221,7 +221,7 @@ function HomeFinderBoard({ id, groups, title, subtitle, seeAllHref, shell, reduc
         <div className="relative hidden gap-2 lg:grid">
           {[
             { key: "toys", eyebrow: "Toys", caption: "Who & age", groups: rowToys, tint: "from-[#eef2ff]/80 to-transparent" },
-            { key: "home", eyebrow: "Home", caption: "Room & budget", groups: rowHome, tint: "from-[#ecfdf5]/90 to-transparent" },
+            { key: "home", eyebrow: "Decor", caption: "Room & budget", groups: rowHome, tint: "from-[#ecfdf5]/90 to-transparent" },
           ]
             .filter((row) => row.groups.length)
             .map((row) => (

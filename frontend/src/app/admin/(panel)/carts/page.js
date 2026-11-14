@@ -35,7 +35,7 @@ function storeBaseUrl() {
   }
   const fromEnv = String(process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
   if (fromEnv && !/placeholder/i.test(fromEnv)) return fromEnv;
-  return "https://mastimall.com";
+  return "https://mastimall.store";
 }
 
 function cartResumeUrl(cart) {

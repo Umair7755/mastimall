@@ -1,10 +1,13 @@
 import Link from "next/link";
 import {
   Baby,
+  Globe,
   Heart,
   HeartHandshake,
+  Mail,
   MessageCircle,
   Package,
+  Phone,
   Search,
   ShieldCheck,
   ShoppingBag,
@@ -18,9 +21,25 @@ import { TrustBar } from "@/components/home/TrustBar";
 import { AGE_BANDS, AUDIENCES, BUDGETS } from "@/lib/constants";
 import { CONTAINER } from "@/lib/layout";
 
-function FootLink({ href, icon: Icon, children }) {
+const SUPPORT_EMAIL = "support@mastimall.store";
+const SUPPORT_PHONE = "03044471631";
+const SUPPORT_PHONE_DISPLAY = "0304-4471631";
+const SITE_DOMAIN = "mastimall.store";
+const SITE_URL = "https://mastimall.store";
+
+function FootLink({ href, icon: Icon, children, external = false }) {
+  const className =
+    "inline-flex min-h-10 items-center gap-2 text-white/90 transition hover:text-sun";
+  if (external) {
+    return (
+      <a href={href} className={className} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer">
+        <Icon aria-hidden="true" size={16} className="text-sun" />
+        {children}
+      </a>
+    );
+  }
   return (
-    <Link href={href} className="inline-flex min-h-10 items-center gap-2 text-white/90 transition hover:text-sun">
+    <Link href={href} className={className}>
       <Icon aria-hidden="true" size={16} className="text-sun" />
       {children}
     </Link>
@@ -28,7 +47,9 @@ function FootLink({ href, icon: Icon, children }) {
 }
 
 export function Footer({ departments = [], whatsapp = "" }) {
-  const wa = String(whatsapp || "").replace(/[^\d]/g, "");
+  const waDigits = String(whatsapp || SUPPORT_PHONE).replace(/[^\d]/g, "");
+  const wa = waDigits.startsWith("92") ? waDigits : waDigits.replace(/^0/, "92");
+
   return (
     <div className="mt-6">
       <TrustBar />
@@ -57,11 +78,42 @@ export function Footer({ departments = [], whatsapp = "" }) {
 
         <div className={`${CONTAINER} relative grid gap-8 pb-8 pt-1 sm:grid-cols-2 lg:grid-cols-4`}>
           <div>
-            <MastiLogo height={56} className="text-[56px]" />
+            <MastiLogo height={88} theme="dark" slogan="moods" orbit tagline={false} className="max-w-[16rem]" />
             <p className="mt-2 text-sm font-medium text-sun/90">Easy for kids. Fast for parents.</p>
             <p className="mt-3 max-w-xs text-white/85">
               Toys + décor for Pakistani homes. Browse by age, room, or budget — then order in under a minute.
             </p>
+            <ul className="mt-4 grid gap-1.5 text-sm text-white/90">
+              <li>
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}`}
+                  className="inline-flex min-h-9 items-center gap-2 transition hover:text-sun"
+                >
+                  <Mail aria-hidden="true" size={16} className="text-sun" />
+                  {SUPPORT_EMAIL}
+                </a>
+              </li>
+              <li>
+                <a
+                  href={`tel:${SUPPORT_PHONE}`}
+                  className="inline-flex min-h-9 items-center gap-2 transition hover:text-sun"
+                >
+                  <Phone aria-hidden="true" size={16} className="text-sun" />
+                  {SUPPORT_PHONE_DISPLAY}
+                </a>
+              </li>
+              <li>
+                <a
+                  href={SITE_URL}
+                  className="inline-flex min-h-9 items-center gap-2 transition hover:text-sun"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Globe aria-hidden="true" size={16} className="text-sun" />
+                  {SITE_DOMAIN}
+                </a>
+              </li>
+            </ul>
             {wa ? (
               <a
                 href={`https://wa.me/${wa}`}
@@ -116,8 +168,28 @@ export function Footer({ departments = [], whatsapp = "" }) {
           </div>
 
           <div>
-            <p className="font-display text-lg">Help</p>
+            <p className="font-display text-lg">Contact & help</p>
             <ul className="mt-3 grid gap-1">
+              <li>
+                <FootLink href={`mailto:${SUPPORT_EMAIL}`} icon={Mail} external>
+                  {SUPPORT_EMAIL}
+                </FootLink>
+              </li>
+              <li>
+                <FootLink href={`tel:${SUPPORT_PHONE}`} icon={Phone} external>
+                  {SUPPORT_PHONE_DISPLAY}
+                </FootLink>
+              </li>
+              <li>
+                <FootLink href={`https://wa.me/${wa}`} icon={MessageCircle} external>
+                  WhatsApp {SUPPORT_PHONE_DISPLAY}
+                </FootLink>
+              </li>
+              <li>
+                <FootLink href={SITE_URL} icon={Globe} external>
+                  {SITE_DOMAIN}
+                </FootLink>
+              </li>
               <li>
                 <FootLink href="/track" icon={Package}>
                   Track an order
@@ -134,8 +206,8 @@ export function Footer({ departments = [], whatsapp = "" }) {
                 </FootLink>
               </li>
               <li>
-                <FootLink href="/search?onSale=1" icon={Search}>
-                  Deals
+                <FootLink href="/delivery-terms" icon={Truck}>
+                  Delivery Terms
                 </FootLink>
               </li>
               <li>
@@ -148,13 +220,35 @@ export function Footer({ departments = [], whatsapp = "" }) {
         </div>
 
         <div className="relative border-t border-white/10 bg-[#1e1b4b]">
-          <p className={`${CONTAINER} py-3 text-center text-sm text-white/85`}>
-            © 2026 Masti Mall · All rights reserved ·{" "}
-            <Link href="/terms" className="underline-offset-2 hover:text-sun hover:underline">
-              Terms of Service
-            </Link>{" "}
-            · Made with love in Pakistan
-          </p>
+          <div className={`${CONTAINER} py-3.5 text-center text-sm text-white/85`}>
+            <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+              <span>© 2026 Masti Mall</span>
+              <span className="text-white/40" aria-hidden="true">
+                ·
+              </span>
+              <a href={SITE_URL} className="underline-offset-2 hover:text-sun hover:underline">
+                {SITE_DOMAIN}
+              </a>
+              <span className="text-white/40" aria-hidden="true">
+                ·
+              </span>
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="underline-offset-2 hover:text-sun hover:underline">
+                {SUPPORT_EMAIL}
+              </a>
+              <span className="text-white/40" aria-hidden="true">
+                ·
+              </span>
+              <a href={`tel:${SUPPORT_PHONE}`} className="underline-offset-2 hover:text-sun hover:underline">
+                {SUPPORT_PHONE_DISPLAY}
+              </a>
+              <span className="text-white/40" aria-hidden="true">
+                ·
+              </span>
+              <Link href="/delivery-terms" className="underline-offset-2 hover:text-sun hover:underline">
+                Delivery Terms
+              </Link>
+            </p>
+          </div>
         </div>
       </footer>
     </div>

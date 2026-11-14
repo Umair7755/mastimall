@@ -1,3 +1,4 @@
+import { MapPin } from "lucide-react";
 import { CONTAINER } from "@/lib/layout";
 
 const PAYMENTS = [
@@ -7,26 +8,30 @@ const PAYMENTS = [
 ];
 
 const COURIERS = [
-  { label: "TCS", hint: "Courier", icon: "/trust/tcs.svg" },
-  { label: "Leopards", hint: "Courier", icon: "/trust/leopards.svg" },
-  { label: "PostEx", hint: "Courier", icon: "/trust/postex.svg" },
-  { label: "Trax", hint: "Courier", icon: "/trust/trax.svg" },
-  { label: "Local", hint: "Rider", icon: "/trust/local.svg" },
+  { label: "TCS", hint: "Courier", icon: "/brand/tcs-logo.png" },
+  { label: "PostEx", hint: "Courier", icon: "/brand/postex-logo.png" },
+  { label: "Local", hint: "City rider", icon: "/trust/local.svg", local: true },
 ];
 
-function LogoChip({ label, hint, icon, dark = false }) {
+function LogoChip({ label, hint, icon, dark = false, local = false }) {
   return (
-    <span className="inline-flex min-h-[4.5rem] min-w-[5.5rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-line/80 bg-white px-2.5 py-2 shadow-soft">
+    <span className="inline-flex min-h-[4.75rem] min-w-[6rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-line/80 bg-white px-3 py-2.5 shadow-soft">
       <span
-        className={`grid h-8 w-12 place-items-center overflow-hidden rounded-md ${dark ? "bg-black" : "bg-white"}`}
+        className={`grid h-9 w-14 place-items-center overflow-hidden rounded-md ${
+          dark ? "bg-black" : local ? "bg-[#eef2ff]" : "bg-white"
+        }`}
       >
-        <img
-          src={icon}
-          alt=""
-          width={48}
-          height={32}
-          className={`h-8 w-12 object-contain ${dark ? "object-cover" : ""}`}
-        />
+        {local && !icon ? (
+          <MapPin aria-hidden="true" size={22} className="text-brand" />
+        ) : (
+          <img
+            src={icon}
+            alt=""
+            width={56}
+            height={36}
+            className={`h-9 w-14 object-contain ${dark ? "object-cover" : "p-0.5"}`}
+          />
+        )}
       </span>
       <span className="font-display text-xs font-semibold leading-none text-ink">{label}</span>
       <span className="text-[9px] uppercase tracking-wide text-ink-muted">{hint}</span>
@@ -34,7 +39,7 @@ function LogoChip({ label, hint, icon, dark = false }) {
   );
 }
 
-/** Payments + delivery strip with brand marks. */
+/** Payments + delivery strip — TCS, PostEx, and local riders only. */
 export function TrustBar() {
   return (
     <section className={`${CONTAINER} py-4 lg:py-6`}>
@@ -49,7 +54,7 @@ export function TrustBar() {
             </div>
           </div>
           <div className="border-t border-line/70 pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-            <h3 className="font-display text-xl font-semibold text-ink lg:text-2xl">Fast & reliable delivery</h3>
+            <h3 className="font-display text-xl font-semibold text-ink lg:text-2xl">We deliver with</h3>
             <div className="mt-4 flex flex-wrap gap-2.5">
               {COURIERS.map((item) => (
                 <LogoChip key={item.label} {...item} />

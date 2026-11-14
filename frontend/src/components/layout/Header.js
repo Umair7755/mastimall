@@ -209,8 +209,8 @@ export function Header({ nav = [], departments = [] }) {
         scrolled && "shadow-nav"
       )}
     >
-      <div className={`${CONTAINER} py-3`}>
-        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2 lg:gap-5">
+      <div className={`${CONTAINER} py-2.5 sm:py-3`}>
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2 lg:gap-4">
           <button
             type="button"
             onClick={openShop}
@@ -221,11 +221,14 @@ export function Header({ nav = [], departments = [] }) {
             <span className="hidden min-[400px]:inline">Menu</span>
           </button>
 
-          <Link href="/" className="min-w-0 shrink overflow-hidden" aria-label="Masti Mall home">
+          <Link href="/" className="min-w-0 shrink-0 overflow-visible" aria-label="Masti Mall home">
             <MastiLogo
-              height={72}
+              height={96}
               priority
-              className="!h-11 max-w-full sm:!h-14 lg:!h-[4.75rem]"
+              slogan="moods"
+              orbit={false}
+              tagline={false}
+              className="!h-[4.6rem] !w-[12.2rem] sm:!h-[5.35rem] sm:!w-[14.2rem] lg:!h-[6rem] lg:!w-[16rem]"
             />
           </Link>
 

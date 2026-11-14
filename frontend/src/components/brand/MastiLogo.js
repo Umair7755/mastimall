@@ -1,40 +1,106 @@
 "use client";
 
-import Image from "next/image";
-import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/cn";
 
-const RATIO = 760 / 296;
+let scriptPromise = null;
 
-/** Animated Masti Mall mark — official PNG + soft motion on the toy blocks feel. */
-export function MastiLogo({ className, height = 44, priority = false, title = "Masti Mall" }) {
-  const reduceMotion = useReducedMotion();
-  const width = Math.round(height * RATIO);
+function livingLogoApi() {
+  return typeof window !== "undefined" ? window.MastiLogo : null;
+}
+
+function loadLivingLogoScript() {
+  if (typeof window === "undefined") return Promise.resolve(null);
+  const ready = livingLogoApi();
+  if (ready?.mount) return Promise.resolve(ready);
+
+  if (!scriptPromise) {
+    scriptPromise = new Promise((resolve, reject) => {
+      const existing = document.querySelector("script[data-masti-living-logo]");
+      if (existing) {
+        const done = () => resolve(livingLogoApi());
+        if (livingLogoApi()?.mount) done();
+        else existing.addEventListener("load", done, { once: true });
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "/brand/masti-mall-logo.js";
+      script.async = true;
+      script.dataset.mastiLivingLogo = "1";
+      script.onload = () => resolve(livingLogoApi());
+      script.onerror = () => reject(new Error("Failed to load Masti Mall logo"));
+      document.body.appendChild(script);
+    });
+  }
+
+  return scriptPromise;
+}
+
+/**
+ * Living Masti Mall logo.
+ * Default: living wordmark + “Many Moods, One Mall” (no category tagline).
+ */
+export function MastiLogo({
+  className,
+  height = 72,
+  title = "Masti Mall",
+  slogan = "moods",
+  orbit = true,
+  tagline = false,
+  theme,
+  mode,
+  priority = false,
+}) {
+  const hostRef = useRef(null);
+  void priority;
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return undefined;
+    let cancelled = false;
+
+    loadLivingLogoScript()
+      .then((api) => {
+        if (cancelled || !hostRef.current || !api?.mount) return;
+        host.innerHTML = "";
+        delete host.__mm;
+        api.mount(host.parentElement || document);
+      })
+      .catch(() => {
+        /* keep empty host — brand still has aria-label */
+      });
+
+    return () => {
+      cancelled = true;
+      if (host) {
+        host.innerHTML = "";
+        delete host.__mm;
+      }
+    };
+  }, [slogan, orbit, tagline, theme, mode]);
+
+  // Header crop (~orbit off) is wider than tall once slogan + category line are included.
+  const ratio = mode === "icon" ? 1 : slogan !== "none" && tagline ? 760 / 318 : slogan !== "none" ? 760 / 292 : 760 / 240;
+  const width = mode === "icon" ? height : Math.round(height * ratio);
 
   return (
-    <motion.span
-      className={cn("masti-logo relative inline-flex shrink-0 items-center", className)}
-      style={{ aspectRatio: String(RATIO), width: "auto", height }}
+    <span
+      className={cn("masti-logo relative inline-flex shrink-0 items-center justify-start overflow-visible", className)}
+      style={{ width, height, maxWidth: "100%", aspectRatio: `${ratio} / 1` }}
       aria-label={title}
-      animate={reduceMotion ? undefined : { y: [0, -1.5, 0] }}
-      transition={reduceMotion ? undefined : { duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+      role="img"
     >
-      <Image
-        src="/brand/masti-mall-logo.png"
-        alt={title}
-        width={760}
-        height={296}
-        priority={priority}
-        className="h-full w-full object-contain object-left drop-shadow-[0_2px_8px_rgb(67_56_202_/_0.18)]"
+      <div
+        ref={hostRef}
+        data-masti-logo=""
+        data-slogan={slogan}
+        data-orbit={orbit ? "true" : "false"}
+        data-tagline={tagline ? "true" : "false"}
+        {...(theme ? { "data-theme": theme } : {})}
+        {...(mode ? { "data-mode": mode } : {})}
+        className="h-full w-full"
+        style={{ width: "100%", height: "100%" }}
       />
-
-      {!reduceMotion ? (
-        <>
-          <span className="masti-sparkle masti-sparkle--a" aria-hidden="true" />
-          <span className="masti-sparkle masti-sparkle--b" aria-hidden="true" />
-          <span className="masti-sparkle masti-sparkle--c" aria-hidden="true" />
-        </>
-      ) : null}
-    </motion.span>
+    </span>
   );
 }

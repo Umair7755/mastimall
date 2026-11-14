@@ -81,7 +81,7 @@ const BUILDERS = {
   room: ({ department = "decor" } = {}) => ({
     key: "room",
     label: "Room",
-    hint: "Home",
+    hint: "Decor",
     tone: "bg-teal-700 text-white ring-teal-200",
     Icon: Armchair,
     items: DECOR_ROOMS.map((room) => ({
