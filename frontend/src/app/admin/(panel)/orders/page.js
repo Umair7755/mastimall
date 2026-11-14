@@ -9,8 +9,11 @@ import {
   Card,
   PageHeader,
   Pagination,
+  StatCard,
 } from "@/components/admin/ui";
 import { adminFetch, formatMoney } from "@/lib/admin";
+import { refreshAdminBadges } from "@/lib/adminEvents";
+import { cn } from "@/lib/cn";
 
 const STATUSES = ["new", "confirmed", "packed", "shipped", "delivered", "cancelled", "returned"];
 
@@ -36,6 +39,17 @@ function paymentTone(method) {
   return "slate";
 }
 
+function statusLabel(status) {
+  if (status === "new") return "New";
+  if (status === "confirmed") return "Confirmed";
+  if (status === "packed") return "Packed";
+  if (status === "shipped") return "Shipped";
+  if (status === "delivered") return "Delivered";
+  if (status === "cancelled") return "Cancelled";
+  if (status === "returned") return "Returned";
+  return status;
+}
+
 export default function AdminOrdersPage() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
@@ -50,6 +64,7 @@ export default function AdminOrdersPage() {
     const params = new URLSearchParams({
       page: String(nextPage),
       limit: String(nextLimit),
+      _t: String(Date.now()),
     });
     if (nextQ) params.set("q", nextQ);
     if (nextStatus) params.set("status", nextStatus);
@@ -73,6 +88,7 @@ export default function AdminOrdersPage() {
       method: "PATCH",
       body: JSON.stringify({ status: nextStatus }),
     });
+    refreshAdminBadges();
     load();
   }
 
@@ -82,9 +98,74 @@ export default function AdminOrdersPage() {
     load({ nextPage: 1 });
   }
 
+  function filterByStatus(nextStatus) {
+    setStatus(nextStatus);
+    setPage(1);
+    load({ nextStatus, nextPage: 1 });
+  }
+
+  const stats = data?.stats || {};
+
   return (
     <div>
-      <PageHeader title="Orders" description="Track fulfillment and payments." />
+      <PageHeader title="Orders" description="Track fulfillment and payments — tap a card to filter." />
+
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <button type="button" className="text-left" onClick={() => filterByStatus("")}>
+          <StatCard
+            label="All orders"
+            value={stats.all ?? 0}
+            hint={`${stats.today ?? 0} placed today`}
+            tone={!status ? "indigo" : "slate"}
+          />
+        </button>
+        <button type="button" className="text-left" onClick={() => filterByStatus("new")}>
+          <StatCard
+            label="New"
+            value={stats.new ?? 0}
+            hint="Waiting for confirmation"
+            tone={status === "new" ? "amber" : "slate"}
+          />
+        </button>
+        <button type="button" className="text-left" onClick={() => filterByStatus("confirmed")}>
+          <StatCard
+            label="Confirmed"
+            value={stats.confirmed ?? 0}
+            hint="Ready to pack"
+            tone={status === "confirmed" ? "amber" : "slate"}
+          />
+        </button>
+        <StatCard
+          label="Today sales"
+          value={formatMoney(stats.todaySales ?? 0)}
+          hint="Excludes cancelled"
+          tone="emerald"
+        />
+      </div>
+
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {[
+          { key: "packed", tone: "indigo", hint: "Being prepared" },
+          { key: "shipped", tone: "indigo", hint: "With courier" },
+          { key: "delivered", tone: "emerald", hint: "Completed" },
+          { key: "cancelled", tone: "rose", hint: "Not fulfilled" },
+          { key: "returned", tone: "rose", hint: "Sent back" },
+        ].map((item) => (
+          <button key={item.key} type="button" className="text-left" onClick={() => filterByStatus(item.key)}>
+            <StatCard
+              label={statusLabel(item.key)}
+              value={stats[item.key] ?? 0}
+              hint={item.hint}
+              tone={status === item.key ? item.tone : "slate"}
+            />
+          </button>
+        ))}
+      </div>
+
+      <p className="mb-3 text-xs text-slate-500">
+        In progress right now:{" "}
+        <span className="font-semibold text-slate-700">{stats.inProgress ?? 0}</span> (new → shipped)
+      </p>
 
       <Card className="mb-4 p-3">
         <form className="flex flex-wrap gap-2" onSubmit={search}>
@@ -97,16 +178,12 @@ export default function AdminOrdersPage() {
           <AdminSelect
             className="w-44"
             value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-              load({ nextStatus: e.target.value, nextPage: 1 });
-            }}
+            onChange={(e) => filterByStatus(e.target.value)}
           >
             <option value="">All statuses</option>
             {STATUSES.map((item) => (
               <option key={item} value={item}>
-                {item}
+                {statusLabel(item)}
               </option>
             ))}
           </AdminSelect>
@@ -126,7 +203,7 @@ export default function AdminOrdersPage() {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-base font-semibold text-slate-900">{order.orderNumber}</p>
-                  <Badge tone={tone(order.status)}>{order.status}</Badge>
+                  <Badge tone={tone(order.status)}>{statusLabel(order.status)}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-slate-500">
                   {order.customer?.name} · {order.customer?.phone} · {order.customer?.city}
@@ -177,13 +254,13 @@ export default function AdminOrdersPage() {
             )}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <AdminSelect
-                className="w-52"
+                className={cn("w-52")}
                 value={order.status}
                 onChange={(e) => updateStatus(order.id, e.target.value)}
               >
                 {STATUSES.map((item) => (
                   <option key={item} value={item}>
-                    Mark {item}
+                    Mark {statusLabel(item)}
                   </option>
                 ))}
               </AdminSelect>

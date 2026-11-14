@@ -2,9 +2,28 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { SalesAreaChart, StatusPieChart, TopProductsChart } from "@/components/admin/Charts";
+import {
+  SalesAreaChart,
+  StatusPieChart,
+  TopProductsChart,
+  VisitsAreaChart,
+} from "@/components/admin/Charts";
 import { Badge, Card, CardHeader, PageHeader, StatCard } from "@/components/admin/ui";
 import { adminFetch, formatMoney } from "@/lib/admin";
+
+function formatWhen(value) {
+  if (!value) return "—";
+  try {
+    return new Date(value).toLocaleString("en-PK", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "—";
+  }
+}
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState(null);
@@ -25,7 +44,7 @@ export default function AdminDashboardPage() {
     <div className="grid gap-5">
       <PageHeader
         title="Dashboard"
-        description="Live sales, catalog health and recent activity."
+        description="Live sales, visitors, abandoned carts and catalog health."
         actions={
           <Link
             href="/admin/products/new"
@@ -35,6 +54,33 @@ export default function AdminDashboardPage() {
           </Link>
         }
       />
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Visits today"
+          value={s.visitsToday ?? 0}
+          hint="Unique browsers today"
+          tone="emerald"
+        />
+        <StatCard
+          label="Visits all time"
+          value={s.visitsAllTime ?? 0}
+          hint="Unique visitor-days"
+          tone="sky"
+        />
+        <StatCard
+          label="Left without buying"
+          value={s.abandonedCarts ?? 0}
+          hint="Shoppers (not items) · idle 2h+"
+          tone="rose"
+        />
+        <StatCard
+          label="Shopping now"
+          value={s.openCarts ?? 0}
+          hint="Shoppers with items, not ordered yet"
+          tone="amber"
+        />
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total revenue" value={formatMoney(s.revenue)} hint="Counted after delivery only" tone="indigo" />
@@ -51,12 +97,67 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.45fr_1fr]">
-        <SalesAreaChart data={data.salesByDay} />
+        <VisitsAreaChart data={data.visitsByDay || []} />
         <StatusPieChart data={data.ordersByStatus} />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-[1.45fr_1fr]">
+        <SalesAreaChart data={data.salesByDay} />
         <TopProductsChart data={data.topProducts} />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card>
+          <CardHeader
+            title="Left without buying"
+            description="Shoppers who added items but did not order (idle 2h+)"
+            action={
+              <Link href="/admin/carts" className="text-xs font-semibold text-indigo-600 hover:underline">
+                Open carts
+              </Link>
+            }
+          />
+          <div className="divide-y divide-slate-100">
+            {(data.abandonedCartList || []).length ? (
+              data.abandonedCartList.map((cart) => {
+                const contact =
+                  cart.contact?.phone || cart.contact?.email || cart.contact?.name
+                    ? [cart.contact?.name, cart.contact?.phone, cart.contact?.email]
+                        .filter(Boolean)
+                        .join(" · ")
+                    : cart.registered
+                      ? "Registered (no contact on file)"
+                      : "Guest · no contact yet";
+                const titles = (cart.items || [])
+                  .map((item) => `${item.title} ×${item.qty}`)
+                  .join(", ");
+                return (
+                  <div key={cart.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-900">
+                        {cart.itemCount} item{cart.itemCount === 1 ? "" : "s"}
+                        {cart.registered ? " · account" : " · guest"}
+                      </p>
+                      <p className="truncate text-xs text-slate-500">{contact}</p>
+                      <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{titles || "—"}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-xs text-slate-500">{formatWhen(cart.lastSeenAt)}</p>
+                      <Badge tone="rose">Abandoned</Badge>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="px-4 py-8 text-center text-sm text-slate-500">
+                No abandoned carts yet.{" "}
+                <Link href="/admin/carts?kind=open" className="font-semibold text-indigo-600 hover:underline">
+                  See open carts
+                </Link>
+              </p>
+            )}
+          </div>
+        </Card>
 
         <Card>
           <CardHeader

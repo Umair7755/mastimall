@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { adminFetch } from "@/lib/admin";
+import { refreshAdminBadges } from "@/lib/adminEvents";
 import { cn } from "@/lib/cn";
 
 const POLL_MS = 4000;
@@ -117,6 +118,7 @@ export default function AdminSupportPage() {
     setError("");
     try {
       await loadDetail(id);
+      refreshAdminBadges();
     } catch (err) {
       setError(err.message);
     }
@@ -139,6 +141,7 @@ export default function AdminSupportPage() {
       );
       setReply("");
       await loadThreads();
+      refreshAdminBadges();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -154,6 +157,7 @@ export default function AdminSupportPage() {
     });
     await loadDetail(selectedId);
     await loadThreads();
+    refreshAdminBadges();
   }
 
   const active = detail?.thread;

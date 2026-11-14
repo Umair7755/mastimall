@@ -34,6 +34,10 @@ import {
 } from './validators.js';
 import { SupportThread } from './models/SupportThread.js';
 import { SupportMessage } from './models/SupportMessage.js';
+import { MallVisit } from './models/MallVisit.js';
+import { MallCart } from './models/MallCart.js';
+import { karachiDayKey, newTrackingId } from './lib/analyticsDay.js';
+import { isValidResumeToken, newResumeToken } from './lib/cartResume.js';
 import {
   appendMessage,
   newPublicId,
@@ -52,6 +56,58 @@ const mall = Router();
 
 const writeLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 40 });
 const trackLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30 });
+const analyticsLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 120 });
+const resumeLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 40 });
+
+const VISITOR_COOKIE = 'mall_vid';
+const GUEST_CART_COOKIE = 'mall_gid';
+const TRACKING_COOKIE_MS = 400 * 24 * 60 * 60 * 1000;
+
+function setTrackingCookie(res, name, value) {
+  res.cookie(name, value, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: TRACKING_COOKIE_MS,
+    path: '/',
+  });
+}
+
+function normalizeCartItems(raw = []) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .slice(0, 40)
+    .map((item) => ({
+      productId: String(item.productId || '').slice(0, 64),
+      title: String(item.title || '').slice(0, 160),
+      slug: String(item.slug || '').slice(0, 120),
+      href: String(item.href || '').slice(0, 200),
+      image: String(item.image || '').slice(0, 500),
+      qty: Math.min(20, Math.max(1, Number(item.qty) || 1)),
+    }))
+    .filter((item) => item.productId);
+}
+
+function cartItemCount(items) {
+  return items.reduce((sum, item) => sum + (item.qty || 0), 0);
+}
+
+async function markCartConverted({ guestId, userId, orderId }) {
+  const filter = { status: { $ne: 'converted' } };
+  if (userId) filter.$or = [{ user: userId }, ...(guestId ? [{ guestId }] : [])];
+  else if (guestId) filter.guestId = guestId;
+  else return;
+
+  await MallCart.updateMany(filter, {
+    $set: {
+      status: 'converted',
+      convertedOrderId: orderId,
+      itemCount: 0,
+      items: [],
+      lastSeenAt: new Date(),
+    },
+  });
+}
 
 function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -517,6 +573,142 @@ mall.get(
 );
 
 mall.post(
+  '/analytics/visit',
+  analyticsLimit,
+  optionalMallAuth,
+  asyncHandler(async (req, res) => {
+    const path = String(req.body?.path || '/').slice(0, 200);
+    if (path.startsWith('/admin')) {
+      return res.json({ ok: true, skipped: true });
+    }
+
+    let visitorId = String(req.cookies?.[VISITOR_COOKIE] || '').trim();
+    if (!visitorId || visitorId.length > 64) {
+      visitorId = newTrackingId();
+    }
+    setTrackingCookie(res, VISITOR_COOKIE, visitorId);
+
+    const day = karachiDayKey();
+    await MallVisit.updateOne(
+      { visitorId, day },
+      {
+        $set: {
+          path,
+          ...(req.mallUserId ? { userId: req.mallUserId } : {}),
+        },
+        $setOnInsert: { visitorId, day },
+      },
+      { upsert: true }
+    );
+
+    res.json({ ok: true, day });
+  })
+);
+
+mall.post(
+  '/cart/sync',
+  analyticsLimit,
+  optionalMallAuth,
+  asyncHandler(async (req, res) => {
+    let guestId = String(req.cookies?.[GUEST_CART_COOKIE] || '').trim();
+    if (!guestId || guestId.length > 64) {
+      guestId = newTrackingId().replace(/^v_/, 'g_');
+    }
+    setTrackingCookie(res, GUEST_CART_COOKIE, guestId);
+
+    const items = normalizeCartItems(req.body?.items);
+    const itemCount = cartItemCount(items);
+    const contactIn = req.body?.contact || {};
+    let contact = {
+      name: String(contactIn.name || '').trim().slice(0, 80),
+      phone: String(contactIn.phone || '').trim().slice(0, 20),
+      email: String(contactIn.email || '').trim().slice(0, 120).toLowerCase(),
+    };
+
+    if (req.mallUserId) {
+      const customer = await MallCustomer.findById(req.mallUserId).select('name phone email').lean();
+      if (customer) {
+        contact = {
+          name: contact.name || customer.name || '',
+          phone: contact.phone || customer.phone || '',
+          email: contact.email || customer.email || '',
+        };
+      }
+    }
+
+    const query = req.mallUserId
+      ? { $or: [{ user: req.mallUserId }, { guestId }], status: { $ne: 'converted' } }
+      : { guestId, status: { $ne: 'converted' } };
+
+    let cart = await MallCart.findOne(query).sort({ updatedAt: -1 });
+    if (!cart) {
+      cart = new MallCart({ guestId, user: req.mallUserId || undefined });
+    }
+
+    cart.guestId = guestId;
+    if (req.mallUserId) cart.user = req.mallUserId;
+    cart.items = items;
+    cart.itemCount = itemCount;
+    cart.contact = contact;
+    cart.lastSeenAt = new Date();
+    cart.status = itemCount > 0 ? 'active' : cart.status === 'converted' ? 'converted' : 'active';
+    if (!cart.resumeToken) cart.resumeToken = newResumeToken();
+    await cart.save();
+
+    res.json({
+      ok: true,
+      cartId: String(cart._id),
+      itemCount: cart.itemCount,
+      status: cart.status,
+      resumeToken: cart.resumeToken || null,
+    });
+  })
+);
+
+/**
+ * Public cart resume for WhatsApp / SMS links.
+ * Restores items into the shopper's browser; does not expose contact details.
+ */
+mall.get(
+  '/cart/resume/:token',
+  resumeLimit,
+  asyncHandler(async (req, res) => {
+    const token = String(req.params.token || '').trim();
+    if (!isValidResumeToken(token)) {
+      throw new HttpError(404, 'This cart link is not valid.');
+    }
+
+    const cart = await MallCart.findOne({ resumeToken: token });
+    if (!cart || cart.status === 'converted' || !(cart.itemCount > 0) || !cart.items?.length) {
+      throw new HttpError(404, 'This cart is empty or already ordered.');
+    }
+
+    // Keep resume working across devices by aligning guest cookie to this cart.
+    if (cart.guestId) {
+      setTrackingCookie(res, GUEST_CART_COOKIE, cart.guestId);
+    }
+
+    cart.lastSeenAt = new Date();
+    if (cart.status !== 'active') cart.status = 'active';
+    await cart.save();
+
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      ok: true,
+      items: (cart.items || []).map((item) => ({
+        productId: item.productId,
+        title: item.title,
+        slug: item.slug || '',
+        href: item.href || '',
+        image: item.image || '',
+        qty: item.qty,
+      })),
+      itemCount: cart.itemCount,
+    });
+  })
+);
+
+mall.post(
   '/quote',
   validate(quoteSchema),
   asyncHandler(async (req, res) => {
@@ -642,6 +834,13 @@ mall.post(
 
     console.log(`[masti-mall] new order ${order.orderNumber} for ${phone}. Confirm on WhatsApp.`);
     pingRevalidate(['products', ...lines.map((line) => `product:${line.product.slug}`)]);
+
+    const guestId = String(req.cookies?.[GUEST_CART_COOKIE] || '').trim();
+    await markCartConverted({
+      guestId: guestId || undefined,
+      userId: req.mallUserId || undefined,
+      orderId: order._id,
+    });
 
     res.status(201).json({ orderNumber: order.orderNumber, order: presentOrder(order) });
   })

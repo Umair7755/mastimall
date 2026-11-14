@@ -153,6 +153,56 @@ export function UserOrdersTrendChart({ data = [] }) {
   );
 }
 
+export function VisitsAreaChart({ data = [] }) {
+  const chartData = data.map((item) => ({
+    ...item,
+    label: item.date?.slice(5) || item.date,
+  }));
+
+  return (
+    <Card>
+      <CardHeader title="Store visits (30 days)" description="Unique visitors per day" />
+      <div className="h-72 w-full px-2 pb-3 pt-4">
+        {!chartData.length ? (
+          <div className="grid h-full place-items-center text-sm text-slate-500">No visits yet</div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="visitFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#0d9488" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#0d9488" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fontSize: 11, fill: "#64748b" }}
+                axisLine={false}
+                tickLine={false}
+                width={32}
+              />
+              <Tooltip
+                contentStyle={{ borderRadius: 12, borderColor: "#e2e8f0", fontSize: 12 }}
+                formatter={(value) => [value, "Visitors"]}
+              />
+              <Area
+                type="monotone"
+                dataKey="visits"
+                name="visits"
+                stroke="#0d9488"
+                fill="url(#visitFill)"
+                strokeWidth={2.5}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 export function TopProductsChart({ data = [] }) {
   const chartData = data.map((item) => ({
     name: (item.title || item.slug || "").slice(0, 16),

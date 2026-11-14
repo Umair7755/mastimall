@@ -12,6 +12,7 @@ import {
   DataTable,
   PageHeader,
   Pagination,
+  StatCard,
 } from "@/components/admin/ui";
 import { adminFetch } from "@/lib/admin";
 
@@ -143,6 +144,35 @@ export default function AdminUsersPage() {
           </AdminButton>
         }
       />
+
+      {data?.stats ? (
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label="Customers"
+            value={data.stats.customerCount ?? 0}
+            hint={`${data.stats.adminCount ?? 0} admins`}
+            tone="indigo"
+          />
+          <StatCard
+            label="New today"
+            value={data.stats.newToday ?? 0}
+            hint="Accounts created today"
+            tone="emerald"
+          />
+          <StatCard
+            label="Store visits today"
+            value={data.stats.visitsToday ?? 0}
+            hint="Unique shoppers who opened the store"
+            tone="sky"
+          />
+          <StatCard
+            label="Signed-in visits today"
+            value={data.stats.signedInVisitsToday ?? 0}
+            hint="Logged-in users who visited today"
+            tone="amber"
+          />
+        </div>
+      ) : null}
 
       <Card className="mb-4 p-3">
         <form className="flex flex-wrap gap-2" onSubmit={search}>

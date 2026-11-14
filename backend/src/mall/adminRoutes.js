@@ -38,8 +38,67 @@ import {
 } from './middleware/mallAuth.js';
 import { SupportThread } from './models/SupportThread.js';
 import { SupportMessage } from './models/SupportMessage.js';
+import { MallVisit } from './models/MallVisit.js';
+import { MallCart } from './models/MallCart.js';
+import { karachiDayKey, karachiDayRange } from './lib/analyticsDay.js';
+import { ensureResumeToken } from './lib/cartResume.js';
 import { appendMessage, presentMessage, presentThread } from './lib/support.js';
 import { readSupportRevision } from './lib/catalogRevision.js';
+
+const ABANDON_AFTER_MS = 2 * 60 * 60 * 1000;
+
+function cartIdleKind(cart, abandonCutoff = new Date(Date.now() - ABANDON_AFTER_MS)) {
+  const lastSeen = cart.lastSeenAt || cart.updatedAt || new Date(0);
+  if (cart.status === 'converted' || !(cart.itemCount > 0)) return 'empty';
+  return lastSeen <= abandonCutoff ? 'abandoned' : 'open';
+}
+
+function presentAdminCart(cart, abandonCutoff = new Date(Date.now() - ABANDON_AFTER_MS)) {
+  const lastSeenAt = cart.lastSeenAt || cart.updatedAt;
+  const kind = cartIdleKind(cart, abandonCutoff);
+  const idleMs = Math.max(0, Date.now() - new Date(lastSeenAt || 0).getTime());
+  return {
+    id: String(cart._id),
+    guestId: cart.guestId || '',
+    userId: cart.user ? String(cart.user) : '',
+    resumeToken: cart.resumeToken || '',
+    itemCount: cart.itemCount || 0,
+    items: (cart.items || []).map((item) => ({
+      productId: item.productId,
+      title: item.title,
+      slug: item.slug || '',
+      href: item.href || '',
+      qty: item.qty,
+      image: item.image || '',
+    })),
+    contact: {
+      name: cart.contact?.name || '',
+      phone: cart.contact?.phone || '',
+      email: cart.contact?.email || '',
+    },
+    registered: Boolean(cart.user),
+    lastSeenAt,
+    createdAt: cart.createdAt,
+    updatedAt: cart.updatedAt,
+    status: cart.status,
+    kind,
+    idleHours: Math.round((idleMs / 36e5) * 10) / 10,
+  };
+}
+
+async function presentAdminCarts(carts, abandonCutoff) {
+  const out = [];
+  for (const cart of carts) {
+    await ensureResumeToken(cart);
+    out.push(presentAdminCart(cart, abandonCutoff));
+  }
+  return out;
+}
+
+/** @deprecated alias — dashboard still uses this name */
+function presentAbandonedCart(cart) {
+  return presentAdminCart(cart);
+}
 
 const admin = Router();
 const writeLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 80 });
@@ -201,6 +260,30 @@ admin.get(
   })
 );
 
+/** Live nav badges: new orders, support unread, carts with items still waiting. */
+admin.get(
+  '/admin/badges',
+  requireMallAdmin,
+  asyncHandler(async (_req, res) => {
+    const abandonCutoff = new Date(Date.now() - ABANDON_AFTER_MS);
+    const cartBase = { status: { $ne: 'converted' }, itemCount: { $gt: 0 } };
+    const [newOrders, supportUnread, openCarts, abandonedCarts] = await Promise.all([
+      MallOrder.countDocuments({ status: 'new' }),
+      SupportThread.aggregate([{ $group: { _id: null, count: { $sum: '$unreadAdmin' } } }]),
+      MallCart.countDocuments({ ...cartBase, lastSeenAt: { $gt: abandonCutoff } }),
+      MallCart.countDocuments({ ...cartBase, lastSeenAt: { $lte: abandonCutoff } }),
+    ]);
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      newOrders,
+      supportUnread: supportUnread[0]?.count || 0,
+      openCarts,
+      abandonedCarts,
+      activeCarts: openCarts + abandonedCarts,
+    });
+  })
+);
+
 admin.get(
   '/admin/dashboard',
   requireMallAdmin,
@@ -214,6 +297,17 @@ admin.get(
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
+
+    const todayKey = karachiDayKey();
+    const visitDays = karachiDayRange(30);
+    const visitSince = visitDays[0];
+    const abandonCutoff = new Date(Date.now() - ABANDON_AFTER_MS);
+    const openCartFilter = { status: { $ne: 'converted' }, itemCount: { $gt: 0 } };
+    const abandonedFilter = { ...openCartFilter, lastSeenAt: { $lte: abandonCutoff } };
+    const abandonedTodayFilter = {
+      ...abandonedFilter,
+      lastSeenAt: { $gte: todayStart, $lte: abandonCutoff },
+    };
 
     const [
       productCount,
@@ -232,6 +326,13 @@ admin.get(
       dailyRows,
       topRows,
       recentOrders,
+      visitsToday,
+      visitsAllTime,
+      visitDayRows,
+      openCarts,
+      abandonedCarts,
+      abandonedToday,
+      abandonedList,
     ] = await Promise.all([
       Product.countDocuments({}),
       Product.countDocuments({ status: 'active' }),
@@ -278,6 +379,17 @@ admin.get(
         { $limit: 6 },
       ]),
       MallOrder.find({}).sort({ createdAt: -1 }).limit(8),
+      MallVisit.countDocuments({ day: todayKey }),
+      MallVisit.countDocuments({}),
+      MallVisit.aggregate([
+        { $match: { day: { $gte: visitSince } } },
+        { $group: { _id: '$day', visits: { $sum: 1 } } },
+        { $sort: { _id: 1 } },
+      ]),
+      MallCart.countDocuments(openCartFilter),
+      MallCart.countDocuments(abandonedFilter),
+      MallCart.countDocuments(abandonedTodayFilter),
+      MallCart.find(abandonedFilter).sort({ lastSeenAt: -1 }).limit(12).lean(),
     ]);
 
     const dayMap = Object.fromEntries(dailyRows.map((row) => [row._id, row]));
@@ -296,6 +408,12 @@ admin.get(
     const ordersByStatus = ORDER_STATUSES.map((status) => ({
       status,
       count: statusRows.find((row) => row._id === status)?.count || 0,
+    }));
+
+    const visitMap = Object.fromEntries(visitDayRows.map((row) => [row._id, row.visits]));
+    const visitsByDay = visitDays.map((date) => ({
+      date,
+      visits: visitMap[date] || 0,
     }));
 
     res.json({
@@ -317,8 +435,14 @@ admin.get(
           revenueAgg[0]?.orders > 0
             ? Math.round((revenueAgg[0].revenue / revenueAgg[0].orders) * 100) / 100
             : 0,
+        visitsToday,
+        visitsAllTime,
+        openCarts,
+        abandonedCarts,
+        abandonedToday,
       },
       salesByDay,
+      visitsByDay,
       ordersByStatus,
       topProducts: topRows.map((row) => ({
         slug: row._id,
@@ -327,6 +451,7 @@ admin.get(
         revenue: row.revenue,
       })),
       recentOrders: recentOrders.map(presentAdminOrder),
+      abandonedCartList: await presentAdminCarts(abandonedList, abandonCutoff),
     });
   })
 );
@@ -550,18 +675,110 @@ admin.get(
         { 'customer.city': pattern },
       ];
     }
-    const [total, items] = await Promise.all([
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [total, items, statusRows, todayOrders, todayRevenueAgg, allCount] = await Promise.all([
       MallOrder.countDocuments(query),
       MallOrder.find(query)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
+      MallOrder.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+      MallOrder.countDocuments({ createdAt: { $gte: todayStart } }),
+      MallOrder.aggregate([
+        { $match: { createdAt: { $gte: todayStart }, status: { $ne: 'cancelled' } } },
+        { $group: { _id: null, total: { $sum: '$total' } } },
+      ]),
+      MallOrder.countDocuments({}),
     ]);
+
+    const byStatus = Object.fromEntries(ORDER_STATUSES.map((status) => [status, 0]));
+    for (const row of statusRows) {
+      if (row._id in byStatus) byStatus[row._id] = row.count;
+    }
+
     res.json({
       items: items.map(presentAdminOrder),
       total,
       page,
-      pages: Math.ceil(total / limit),
+      pages: Math.ceil(total / limit) || 1,
+      stats: {
+        all: allCount,
+        today: todayOrders,
+        todaySales: todayRevenueAgg[0]?.total || 0,
+        byStatus,
+        new: byStatus.new || 0,
+        confirmed: byStatus.confirmed || 0,
+        packed: byStatus.packed || 0,
+        shipped: byStatus.shipped || 0,
+        delivered: byStatus.delivered || 0,
+        cancelled: byStatus.cancelled || 0,
+        returned: byStatus.returned || 0,
+        inProgress:
+          (byStatus.new || 0) +
+          (byStatus.confirmed || 0) +
+          (byStatus.packed || 0) +
+          (byStatus.shipped || 0),
+      },
+    });
+  })
+);
+
+admin.get(
+  '/admin/carts',
+  requireMallAdmin,
+  asyncHandler(async (req, res) => {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+    const kind = String(req.query.kind || 'abandoned').toLowerCase();
+    const abandonCutoff = new Date(Date.now() - ABANDON_AFTER_MS);
+    const base = { status: { $ne: 'converted' }, itemCount: { $gt: 0 } };
+
+    let query = { ...base };
+    if (kind === 'abandoned') {
+      query = { ...base, lastSeenAt: { $lte: abandonCutoff } };
+    } else if (kind === 'open') {
+      query = { ...base, lastSeenAt: { $gt: abandonCutoff } };
+    } else if (kind === 'all') {
+      query = { ...base };
+    }
+
+    if (req.query.q) {
+      const pattern = new RegExp(escapeRegex(String(req.query.q).trim()), 'i');
+      query.$and = [
+        ...(query.$and || []),
+        {
+          $or: [
+            { 'contact.name': pattern },
+            { 'contact.phone': pattern },
+            { 'contact.email': pattern },
+            { 'items.title': pattern },
+            { 'items.slug': pattern },
+            { guestId: pattern },
+          ],
+        },
+      ];
+    }
+
+    const [total, items, openCount, abandonedCount] = await Promise.all([
+      MallCart.countDocuments(query),
+      MallCart.find(query)
+        .sort({ lastSeenAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      MallCart.countDocuments({ ...base, lastSeenAt: { $gt: abandonCutoff } }),
+      MallCart.countDocuments({ ...base, lastSeenAt: { $lte: abandonCutoff } }),
+    ]);
+
+    res.json({
+      items: await presentAdminCarts(items, abandonCutoff),
+      total,
+      page,
+      pages: Math.max(1, Math.ceil(total / limit)),
+      summary: { open: openCount, abandoned: abandonedCount, all: openCount + abandonedCount },
     });
   })
 );
@@ -603,77 +820,96 @@ admin.get(
       const pattern = new RegExp(escapeRegex(String(req.query.q).trim()), 'i');
       query.$or = [{ name: pattern }, { email: pattern }, { phone: pattern }];
     }
-    const [total, items] = await Promise.all([
-      MallCustomer.countDocuments(query),
-      MallCustomer.aggregate([
-        { $match: query },
-        {
-          $addFields: {
-            adminFirst: { $cond: [{ $eq: ['$role', 'admin'] }, 0, 1] },
+
+    const todayKey = karachiDayKey();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [total, items, customerCount, adminCount, newToday, visitsToday, signedInVisitsToday] =
+      await Promise.all([
+        MallCustomer.countDocuments(query),
+        MallCustomer.aggregate([
+          { $match: query },
+          {
+            $addFields: {
+              adminFirst: { $cond: [{ $eq: ['$role', 'admin'] }, 0, 1] },
+            },
           },
-        },
-        { $sort: { adminFirst: 1, createdAt: -1 } },
-        { $skip: (page - 1) * limit },
-        { $limit: limit },
-        {
-          $lookup: {
-            from: 'mallorders',
-            let: { customerId: '$_id', phone: '$phone' },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $or: [
-                      { $eq: ['$user', '$$customerId'] },
-                      {
-                        $and: [
-                          { $ne: ['$$phone', null] },
-                          { $ne: ['$$phone', ''] },
-                          { $eq: ['$customer.phone', '$$phone'] },
-                        ],
-                      },
-                    ],
+          { $sort: { adminFirst: 1, createdAt: -1 } },
+          { $skip: (page - 1) * limit },
+          { $limit: limit },
+          {
+            $lookup: {
+              from: 'mallorders',
+              let: { customerId: '$_id', phone: '$phone' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $or: [
+                        { $eq: ['$user', '$$customerId'] },
+                        {
+                          $and: [
+                            { $ne: ['$$phone', null] },
+                            { $ne: ['$$phone', ''] },
+                            { $eq: ['$customer.phone', '$$phone'] },
+                          ],
+                        },
+                      ],
+                    },
                   },
                 },
-              },
-              {
-                $group: {
-                  _id: null,
-                  orderCount: { $sum: 1 },
-                  cancelledCount: {
-                    $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] },
+                {
+                  $group: {
+                    _id: null,
+                    orderCount: { $sum: 1 },
+                    cancelledCount: {
+                      $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] },
+                    },
                   },
                 },
-              },
-            ],
-            as: 'orderStats',
+              ],
+              as: 'orderStats',
+            },
           },
-        },
-        {
-          $addFields: {
-            orderCount: { $ifNull: [{ $arrayElemAt: ['$orderStats.orderCount', 0] }, 0] },
-            cancelledCount: { $ifNull: [{ $arrayElemAt: ['$orderStats.cancelledCount', 0] }, 0] },
+          {
+            $addFields: {
+              orderCount: { $ifNull: [{ $arrayElemAt: ['$orderStats.orderCount', 0] }, 0] },
+              cancelledCount: { $ifNull: [{ $arrayElemAt: ['$orderStats.cancelledCount', 0] }, 0] },
+            },
           },
-        },
-        {
-          $project: {
-            name: 1,
-            email: 1,
-            phone: 1,
-            role: 1,
-            wishlist: 1,
-            createdAt: 1,
-            orderCount: 1,
-            cancelledCount: 1,
+          {
+            $project: {
+              name: 1,
+              email: 1,
+              phone: 1,
+              role: 1,
+              wishlist: 1,
+              createdAt: 1,
+              orderCount: 1,
+              cancelledCount: 1,
+            },
           },
-        },
-      ]),
-    ]);
+        ]),
+        MallCustomer.countDocuments({ role: { $ne: 'admin' } }),
+        MallCustomer.countDocuments({ role: 'admin' }),
+        MallCustomer.countDocuments({ role: { $ne: 'admin' }, createdAt: { $gte: todayStart } }),
+        MallVisit.countDocuments({ day: todayKey }),
+        MallVisit.countDocuments({ day: todayKey, userId: { $ne: null } }),
+      ]);
+
     res.json({
       items: items.map(presentAdminCustomer),
       total,
       page,
       pages: Math.ceil(total / limit) || 1,
+      stats: {
+        customerCount,
+        adminCount,
+        newToday,
+        visitsToday,
+        signedInVisitsToday,
+      },
     });
   })
 );

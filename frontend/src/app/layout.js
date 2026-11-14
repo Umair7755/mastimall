@@ -9,6 +9,7 @@ import { MobileNav } from "@/components/layout/MobileNav";
 import { ShopSheet } from "@/components/layout/ShopSheet";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { LiveStoreRefresh } from "@/components/layout/LiveStoreRefresh";
+import { StoreAnalytics } from "@/components/analytics/StoreAnalytics";
 import { HelpChat } from "@/components/support/HelpChat";
 import { Providers } from "@/components/providers/Providers";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -84,6 +85,7 @@ async function StorefrontChrome({ children }) {
       <ShopSheet departments={departments} />
       <HelpChat />
       <LiveStoreRefresh />
+      <StoreAnalytics />
     </>
   );
 }

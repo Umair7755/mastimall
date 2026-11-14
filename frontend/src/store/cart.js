@@ -43,6 +43,20 @@ export const useCart = create(
         })),
       remove: (productId) => set((state) => ({ items: state.items.filter((item) => item.productId !== productId) })),
       clear: () => set({ items: [] }),
+      /** Replace cart from a server resume link (WhatsApp / SMS). */
+      replaceItems: (nextItems = []) =>
+        set({
+          items: (Array.isArray(nextItems) ? nextItems : [])
+            .filter((item) => item?.productId)
+            .map((item) => ({
+              productId: String(item.productId),
+              title: String(item.title || ""),
+              slug: String(item.slug || ""),
+              href: String(item.href || ""),
+              image: String(item.image || ""),
+              qty: Math.min(20, Math.max(1, Number(item.qty) || 1)),
+            })),
+        }),
     }),
     {
       name: "mastimall-cart",

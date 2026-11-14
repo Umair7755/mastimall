@@ -10,26 +10,52 @@ import {
   MessageCircle,
   Package,
   ShoppingBag,
+  ShoppingCart,
   Store,
   Users,
 } from "lucide-react";
 import { adminFetch } from "@/lib/admin";
+import { ADMIN_BADGES_REFRESH } from "@/lib/adminEvents";
 import { cn } from "@/lib/cn";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/products", label: "Products", icon: Package },
-  { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
-  { href: "/admin/support", label: "Support", icon: MessageCircle },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingBag, badgeKey: "newOrders" },
+  { href: "/admin/carts", label: "Carts", icon: ShoppingCart, badgeKey: "activeCarts" },
+  { href: "/admin/support", label: "Support", icon: MessageCircle, badgeKey: "supportUnread" },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/banner", label: "Sale banner", icon: ImageIcon },
 ];
+
+const BADGE_POLL_MS = 8000;
+
+function NavBadge({ count, dark }) {
+  if (!count || count < 1) return null;
+  const label = count > 99 ? "99+" : String(count);
+  return (
+    <span
+      className={cn(
+        "ml-auto inline-flex h-5 min-w-[1.35rem] items-center justify-center rounded-full px-1.5",
+        "text-[11px] font-bold tabular-nums leading-none tracking-tight",
+        "shadow-sm ring-2",
+        dark
+          ? "bg-gradient-to-b from-rose-400 to-rose-600 text-white ring-slate-950"
+          : "bg-gradient-to-b from-rose-500 to-rose-700 text-white ring-white"
+      )}
+      aria-label={`${label} waiting`}
+    >
+      {label}
+    </span>
+  );
+}
 
 export function AdminShell({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [badges, setBadges] = useState({ newOrders: 0, supportUnread: 0, activeCarts: 0 });
 
   useEffect(() => {
     let alive = true;
@@ -48,6 +74,42 @@ export function AdminShell({ children }) {
       alive = false;
     };
   }, [router]);
+
+  useEffect(() => {
+    if (!admin) return undefined;
+    let alive = true;
+
+    async function loadBadges() {
+      if (document.visibilityState === "hidden") return;
+      try {
+        const data = await adminFetch(`/admin/badges?_=${Date.now()}`);
+        if (!alive) return;
+        setBadges({
+          newOrders: Number(data.newOrders) || 0,
+          supportUnread: Number(data.supportUnread) || 0,
+          activeCarts: Number(data.activeCarts) || 0,
+        });
+      } catch {
+        /* keep last known */
+      }
+    }
+
+    loadBadges();
+    const timer = window.setInterval(loadBadges, BADGE_POLL_MS);
+    const onFocus = () => loadBadges();
+    const onRefresh = () => loadBadges();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    window.addEventListener(ADMIN_BADGES_REFRESH, onRefresh);
+
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener(ADMIN_BADGES_REFRESH, onRefresh);
+    };
+  }, [admin, pathname]);
 
   async function logout() {
     await adminFetch("/auth/logout", { method: "POST" }).catch(() => null);
@@ -75,6 +137,7 @@ export function AdminShell({ children }) {
           {NAV.map((item) => {
             const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
             const Icon = item.icon;
+            const count = item.badgeKey ? badges[item.badgeKey] : 0;
             return (
               <Link
                 key={item.href}
@@ -85,7 +148,8 @@ export function AdminShell({ children }) {
                 )}
               >
                 <Icon size={16} aria-hidden="true" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                <NavBadge count={count} dark />
               </Link>
             );
           })}
@@ -123,16 +187,18 @@ export function AdminShell({ children }) {
           <nav className="mt-3 flex gap-1.5 overflow-x-auto pb-1 lg:hidden">
             {NAV.map((item) => {
               const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+              const count = item.badgeKey ? badges[item.badgeKey] : 0;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold",
+                    "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold",
                     active ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-700"
                   )}
                 >
                   {item.label}
+                  <NavBadge count={count} />
                 </Link>
               );
             })}
