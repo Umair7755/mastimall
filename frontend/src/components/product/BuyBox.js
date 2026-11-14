@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Minus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { AskParentButton, NotifyForm } from "@/components/product/NotifyForm";
@@ -16,6 +17,7 @@ export function BuyBox({ product }) {
   const addToCart = useAddToCart();
   const href = productPath(product);
   const adult = product.ageBands?.every((band) => band === "12-plus");
+  const max = Math.min(20, product.stock || 20);
 
   return (
     <div className="flex flex-col gap-4">
@@ -32,8 +34,12 @@ export function BuyBox({ product }) {
       {product.brand ? <p className="text-ink-muted">{product.brand}</p> : null}
       {product.inStock ? (
         <div className="flex flex-wrap items-center gap-3">
-          <QtyStepper qty={qty} max={Math.min(20, product.stock || 20)} onChange={setQty} />
-          <Button variant="sun" className="min-w-48 flex-1" onClick={(event) => addToCart(product, qty, event.currentTarget.closest("div"))}>
+          <QtyStepper qty={qty} max={max} onChange={setQty} />
+          <Button
+            variant="sun"
+            className="min-w-48 flex-1 !bg-[#fbbf24] !text-ink hover:!brightness-105"
+            onClick={(event) => addToCart(product, qty, event.currentTarget.closest("div"))}
+          >
             Add to cart
           </Button>
         </div>
@@ -48,11 +54,44 @@ export function BuyBox({ product }) {
         </p>
         {product.fragile ? <p className="mt-2">This one is packed with extra care.</p> : null}
       </div>
-      <div className="fixed inset-x-0 bottom-16 z-30 border-t border-line bg-surface p-3 lg:hidden">
+
+      <div
+        className="fixed inset-x-0 z-30 border-t border-line bg-surface/95 px-3 py-2.5 shadow-nav backdrop-blur-xl lg:hidden"
+        style={{ bottom: "var(--mobile-chrome-bottom)" }}
+      >
         {product.inStock ? (
-          <Button variant="sun" className="w-full" onClick={() => addToCart(product, qty)}>
-            Add to cart
-          </Button>
+          <div className="mx-auto flex max-w-lg items-center gap-2">
+            <div className="inline-flex items-center gap-1 rounded-full border border-line bg-white p-0.5">
+              <button
+                type="button"
+                className="grid h-10 w-10 place-items-center rounded-full disabled:opacity-40"
+                onClick={() => setQty(Math.max(1, qty - 1))}
+                disabled={qty <= 1}
+                aria-label="Fewer"
+              >
+                <Minus size={16} aria-hidden="true" />
+              </button>
+              <span className="min-w-7 text-center font-display text-base font-semibold" aria-live="polite">
+                {qty}
+              </span>
+              <button
+                type="button"
+                className="grid h-10 w-10 place-items-center rounded-full disabled:opacity-40"
+                onClick={() => setQty(Math.min(max, qty + 1))}
+                disabled={qty >= max}
+                aria-label="More"
+              >
+                <Plus size={16} aria-hidden="true" />
+              </button>
+            </div>
+            <Button
+              variant="sun"
+              className="min-h-11 flex-1 !bg-[#fbbf24] !text-ink hover:!brightness-105"
+              onClick={() => addToCart(product, qty)}
+            >
+              Add · {formatPkr(product.currentPrice ?? product.salePrice ?? product.price)}
+            </Button>
+          </div>
         ) : (
           <p className="text-center font-display text-lg">Sold out right now</p>
         )}

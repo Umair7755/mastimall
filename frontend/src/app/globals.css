@@ -33,6 +33,17 @@
   --shadow-nav: 0 14px 40px -18px rgb(49 46 129 / 0.28);
 }
 
+:root {
+  /* Mobile bottom chrome — MobileNav (h-16) + gap + safe area */
+  --mobile-nav-h: 4rem;
+  --mobile-chrome-gap: 0.75rem;
+  --mobile-chrome-bottom: calc(
+    var(--mobile-nav-h) + var(--mobile-chrome-gap) + env(safe-area-inset-bottom, 0px)
+  );
+  /* Sticky PDP buy bar height reserve above chrome */
+  --mobile-buybar-h: 4.25rem;
+}
+
 body {
   background:
     radial-gradient(circle at 12% -10%, rgb(79 70 229 / 0.1), transparent 34%),
@@ -43,6 +54,25 @@ body {
   font-family: var(--font-body);
   font-size: 1.0625rem;
   line-height: 1.6;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Sit fixed UI above the mobile bottom nav */
+.mobile-chrome-bottom {
+  bottom: var(--mobile-chrome-bottom);
+}
+
+.mobile-chrome-pad {
+  padding-bottom: var(--mobile-chrome-bottom);
+}
+
+@media (min-width: 1024px) {
+  .mobile-chrome-bottom {
+    bottom: 2rem;
+  }
+  .mobile-chrome-pad {
+    padding-bottom: 0;
+  }
 }
 
 h1,
@@ -52,10 +82,11 @@ h3 {
   line-height: 1.15;
 }
 
+/* Decor mood — teal warmth without fighting the brand. */
 [data-department="decor"] {
-  --color-brand: #4c6b5c;
-  --color-brand-dark: #34493f;
-  --color-brand-soft: #e8efea;
+  --color-brand: #0f766e;
+  --color-brand-dark: #115e59;
+  --color-brand-soft: #ecfdf5;
   --color-sun: #d9a35b;
   --shadow-press: 0 3px 0 0 var(--color-brand-dark);
 }

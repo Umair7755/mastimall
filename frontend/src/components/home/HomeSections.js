@@ -1,20 +1,26 @@
-import { AgePicker } from "@/components/home/AgePicker";
-import { AudienceTiles } from "@/components/home/AudienceTiles";
-import { BudgetTiles } from "@/components/home/BudgetTiles";
-import { CategoryGrid } from "@/components/home/CategoryGrid";
+import { FindToysRail } from "@/components/home/FindToysRail";
 import { Hero } from "@/components/home/Hero";
 import { ProductStrip } from "@/components/home/ProductStrip";
 import { ReviewStrip } from "@/components/home/ReviewStrip";
 import { TrustStrip } from "@/components/home/TrustStrip";
 
-/** Clear shop flow: hero → categories → who/age/budget → hot → new → trust. */
-const TYPE_ORDER = ["hero", "categories", "audience", "age", "budget", "products", "trust", "reviews"];
+/** Hero → find chips (visible on land) → all / hot / new → trust. */
+const TYPE_ORDER = ["hero", "finder", "products", "trust", "reviews"];
+
+const ALL_PRODUCTS_SECTION = {
+  type: "products",
+  title: "All toys",
+  order: 2,
+  active: true,
+  config: { all: true, sort: "new", limit: 24, layout: "row" },
+};
 
 function productRank(section) {
   const config = section.config || {};
-  if (config.featured || /hot|best|popular/i.test(section.title || "")) return 0;
-  if (config.isNew || /new/i.test(section.title || "")) return 1;
-  return 2;
+  if (config.all || config.catalog) return 0;
+  if (config.featured || /hot|best|popular/i.test(section.title || "")) return 1;
+  if (config.isNew || /new/i.test(section.title || "")) return 2;
+  return 3;
 }
 
 function sectionRank(section) {
@@ -24,32 +30,50 @@ function sectionRank(section) {
   return base + (section.order || 0);
 }
 
+/** Map legacy home config (categories / audience / age / budget) into the product-first layout. */
+export function normalizeHomeSections(sections = []) {
+  const list = Array.isArray(sections) ? sections.filter((section) => section && section.active !== false) : [];
+  const budgetSection = list.find((section) => section.type === "budget");
+  const wantsFinder = list.some((section) => ["audience", "age", "budget", "finder"].includes(section.type));
+
+  const kept = list.filter((section) => !["categories", "audience", "age", "budget", "finder"].includes(section.type));
+
+  const hasAllRail = kept.some(
+    (section) => section.type === "products" && (section.config?.all || section.config?.catalog)
+  );
+  if (!hasAllRail) {
+    kept.push(ALL_PRODUCTS_SECTION);
+  }
+
+  if (wantsFinder || list.length === 0) {
+    kept.push({
+      type: "finder",
+      title: "Find toys",
+      order: 1,
+      active: true,
+      config: { limits: budgetSection?.config?.limits || [500, 1000, 2000, 5000] },
+    });
+  }
+
+  return kept.sort((a, b) => sectionRank(a) - sectionRank(b));
+}
+
 export async function HomeSections({ sections = [], departments = [] }) {
+  void departments;
+  const normalized = normalizeHomeSections(sections);
   const entries = {
-    who: sections.some((section) => section.type === "audience"),
-    age: sections.some((section) => section.type === "age"),
-    budget: sections.some((section) => section.type === "budget"),
+    who: true,
+    age: true,
+    budget: true,
   };
 
-  const sorted = [...sections].sort((a, b) => sectionRank(a) - sectionRank(b));
-
   const blocks = [];
-  for (const section of sorted) {
+  for (const section of normalized) {
     const key = `${section.type}-${section.order}-${section.title}`;
     if (section.type === "hero") {
       blocks.push(<Hero key={key} title={section.title} text={section.config?.text} entries={entries} />);
-    } else if (section.type === "audience") {
-      blocks.push(<AudienceTiles key={key} title="Shop for" />);
-    } else if (section.type === "age") {
-      blocks.push(<AgePicker key={key} title="Shop by age" />);
-    } else if (section.type === "budget") {
-      blocks.push(<BudgetTiles key={key} title="Shop by budget" limits={section.config?.limits} />);
-    } else if (section.type === "categories") {
-      const slug = section.config?.department;
-      const department = departments.find((item) => item.slug === slug) || departments[0];
-      blocks.push(
-        <CategoryGrid key={key} title="Top categories" department={department} limit={section.config?.limit || 10} />
-      );
+    } else if (section.type === "finder") {
+      blocks.push(<FindToysRail key={key} budgetLimits={section.config?.limits} />);
     } else if (section.type === "products") {
       const strip = await ProductStrip({ section });
       if (strip) blocks.push(<div key={key}>{strip}</div>);

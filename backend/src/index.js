@@ -11,6 +11,7 @@ import { MallCustomer } from "./mall/models/MallCustomer.js";
 import { MallSetting } from "./mall/models/Setting.js";
 import { DEFAULT_SALE_BANNER } from "./mall/lib/saleBanner.js";
 import { seedCatalog } from "./mall/seed.js";
+import { ensureDecorCatalog } from "./mall/lib/ensureDecor.js";
 
 assertEnv();
 
@@ -79,6 +80,8 @@ const db = await connectMongo();
 
 if ((await Department.countDocuments()) === 0) {
   await seedCatalog();
+} else {
+  await ensureDecorCatalog();
 }
 await ensureAdminAndBanner();
 

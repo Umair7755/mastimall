@@ -15,7 +15,10 @@ export function Toast() {
 
   if (!notice) return null;
   return (
-    <div role="status" className="fixed bottom-24 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-white lg:bottom-8">
+    <div
+      role="status"
+      className="mobile-chrome-bottom fixed left-1/2 z-[60] -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-white shadow-lift"
+    >
       {notice}
     </div>
   );

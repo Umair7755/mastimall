@@ -92,8 +92,9 @@ export const FALLBACK_HOME = {
   announcement: "COD, JazzCash & EasyPaisa across Pakistan · Wallet payments need a receipt.",
   whatsapp: "",
   nav: [
+    { label: "Home", href: "/", kind: "home" },
     { label: "Toys", href: "/toys", kind: "department" },
-    { label: "Decor", href: null, soon: true },
+    { label: "Decor", href: "/decor", kind: "department" },
     { label: "Deals", href: "/search?onSale=1" },
     { label: "New arrivals", href: "/search?sort=new" },
   ],
@@ -107,16 +108,10 @@ export const FALLBACK_HOME = {
         text: "Bacchon ke toys aur ghar ka décor — dono ek jagah. Bas teen taps, asaan shopping.",
       },
     },
-    { type: "categories", title: "Top categories", order: 1, active: true, config: { department: "toys", limit: 10 } },
-    { type: "audience", title: "Shop for", order: 2, active: true },
-    { type: "age", title: "Shop by age", order: 3, active: true },
-    { type: "budget", title: "Shop by budget", order: 4, active: true, config: { limits: [500, 1000, 2000, 5000] } },
-    { type: "products", title: "Hot right now", order: 5, active: true, config: { sort: "popular", featured: true, limit: 12, layout: "row" } },
-    { type: "products", title: "New arrivals", order: 6, active: true, config: { sort: "new", isNew: true, limit: 12, layout: "row" } },
     {
       type: "trust",
       title: "Why Masti Mall",
-      order: 7,
+      order: 5,
       active: true,
       config: {
         points: [

@@ -196,7 +196,7 @@ export function HelpChat() {
   }
 
   return (
-    <div className="pointer-events-none fixed bottom-[5.75rem] right-3 z-[45] flex flex-col items-end gap-3 sm:bottom-6 sm:right-5 lg:bottom-8">
+    <div className="pointer-events-none mobile-chrome-bottom fixed right-3 z-[45] flex flex-col items-end gap-3 sm:right-5">
       <AnimatePresence>
         {open ? (
           <motion.div

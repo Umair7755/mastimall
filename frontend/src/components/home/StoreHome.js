@@ -1,0 +1,94 @@
+"use client";
+
+import { useMemo } from "react";
+import { FindMallRail } from "@/components/home/FindMallRail";
+import { Hero } from "@/components/home/Hero";
+import { HomeProductRail } from "@/components/home/HomeProductRail";
+import { TrustStrip } from "@/components/home/TrustStrip";
+import { buildMallFinderGroups, DEPARTMENT_MIX_WEIGHT } from "@/lib/finderGroups";
+import { mixProductsWeighted } from "@/lib/mixProducts";
+
+const TRUST_POINTS = [
+  {
+    title: "Flexible payment",
+    text: "COD, JazzCash, or EasyPaisa. Wallet orders need a receipt at checkout.",
+  },
+  {
+    title: "Prices checked again",
+    text: "Totals are calculated on our server from live price and stock.",
+  },
+  {
+    title: "Free delivery from Rs 3,000",
+    text: "Under that, delivery is Rs 200 in big cities and Rs 250 elsewhere.",
+  },
+  {
+    title: "Toys + décor, one checkout",
+    text: "Fill a cart with play and home pieces — one order, one track link.",
+  },
+];
+
+/**
+ * Home order: finder → Mall picks (marquee) → New arrivals (carousel) → All toys → All décor.
+ */
+export function StoreHome({ hero, departments = [], newArrivals = [] }) {
+  const finderGroups = useMemo(
+    () => buildMallFinderGroups(departments.length ? departments.map((d) => d.slug) : ["toys", "decor"]),
+    [departments]
+  );
+
+  const mixed = useMemo(
+    () =>
+      mixProductsWeighted(
+        departments.map((dept) => ({
+          items: dept.all || [],
+          weight: dept.weight ?? DEPARTMENT_MIX_WEIGHT[dept.slug] ?? 0.2,
+        })),
+        24
+      ),
+    [departments]
+  );
+
+  const toys = departments.find((d) => d.slug === "toys");
+  const decor = departments.find((d) => d.slug === "decor");
+  const extras = departments.filter((d) => d.slug !== "toys" && d.slug !== "decor");
+
+  return (
+    <div className="pb-4">
+      <Hero
+        title={hero?.title}
+        text={hero?.text}
+        findHref="#find"
+        entries={{ who: true, age: true, budget: true }}
+      />
+
+      <FindMallRail
+        variant="home"
+        groups={finderGroups}
+        title="Find faster"
+        subtitle="Pick who, age, room or budget"
+        mobileLabel="Find toys & décor · tap a chip"
+        seeAllHref="/search"
+      />
+
+      <HomeProductRail theme="mix" products={mixed} />
+      <HomeProductRail theme="arrivals" products={newArrivals} />
+
+      {toys?.all?.length ? <HomeProductRail theme="toysAll" products={toys.all} /> : null}
+      {decor?.all?.length ? <HomeProductRail theme="decorAll" products={decor.all} /> : null}
+
+      {extras.map((dept) => (
+        <HomeProductRail
+          key={dept.slug}
+          theme="toysAll"
+          title={`All ${dept.name || dept.slug}`}
+          text={`Swipe the ${dept.name || dept.slug} shelf.`}
+          moreHref={`/${dept.slug}`}
+          products={dept.all}
+          layout="row"
+        />
+      ))}
+
+      <TrustStrip title="Why Masti Mall" points={TRUST_POINTS} />
+    </div>
+  );
+}

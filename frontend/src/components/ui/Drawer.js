@@ -62,7 +62,14 @@ export function Drawer({ open, onClose, title, side = "right", children, footer 
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">{children}</div>
-            {footer ? <div className="border-t border-line p-4">{footer}</div> : null}
+            {footer ? (
+              <div
+                className="border-t border-line bg-surface p-4"
+                style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}
+              >
+                {footer}
+              </div>
+            ) : null}
           </motion.div>
         </div>
       ) : null}

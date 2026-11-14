@@ -76,10 +76,10 @@ function ActiveFilters({ pathname, searchParams }) {
         <Link
           key={chip.key}
           href={chip.href}
-          className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-brand/20 bg-brand-soft px-3 text-xs font-semibold text-brand"
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-brand/20 bg-brand-soft px-3 text-xs font-semibold text-brand"
         >
           {chip.label}
-          <X size={12} strokeWidth={2.5} aria-hidden="true" />
+          <X size={14} strokeWidth={2.5} aria-hidden="true" />
         </Link>
       ))}
       <Link href={pathname} className="text-xs font-semibold text-ink-muted underline-offset-2 hover:text-ink hover:underline">

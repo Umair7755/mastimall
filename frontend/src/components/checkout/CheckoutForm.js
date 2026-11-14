@@ -265,7 +265,7 @@ export function CheckoutForm() {
   const blocked = Boolean(quote?.problems?.length) || loading || formState.isSubmitting || !acceptTerms;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-5 pb-20 lg:py-7">
+    <div className="mx-auto max-w-4xl px-4 py-5 pb-[calc(var(--mobile-chrome-bottom)+5rem)] lg:py-7 lg:pb-10">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="font-display text-[28px] font-semibold tracking-tight lg:text-[34px]">Checkout</h1>
@@ -461,14 +461,14 @@ export function CheckoutForm() {
             </span>
           </p>
 
-          <label htmlFor={termsId} className="mt-3 flex cursor-pointer items-start gap-2 rounded-xl bg-white/70 p-2.5">
+          <label htmlFor={termsId} className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl bg-white/70 p-2.5">
             <input
               id={termsId}
               type="checkbox"
-              className="mt-0.5 h-4 w-4 rounded border-line text-brand focus:ring-brand"
+              className="mt-0.5 h-5 w-5 rounded border-line text-brand focus:ring-brand"
               {...register("acceptTerms")}
             />
-            <span className="text-xs leading-relaxed text-ink">
+            <span className="text-xs leading-relaxed text-ink sm:text-sm">
               I agree to the{" "}
               <Link href="/terms" target="_blank" className="font-semibold text-brand underline-offset-2 hover:underline">
                 Terms of Service
@@ -488,11 +488,28 @@ export function CheckoutForm() {
           ))}
           {serverError ? <p className="mt-2 text-sm text-danger">{serverError}</p> : null}
 
-          <Button type="submit" className="mt-3 w-full" disabled={blocked}>
+          <Button type="submit" className="mt-3 hidden w-full lg:inline-flex" disabled={blocked}>
             {formState.isSubmitting ? "Placing order…" : "Place order"}
           </Button>
         </aside>
       </form>
+
+      <div
+        className="fixed inset-x-0 z-30 border-t border-line bg-surface/95 px-3 py-2.5 shadow-nav backdrop-blur-xl lg:hidden"
+        style={{ bottom: "var(--mobile-chrome-bottom)" }}
+      >
+        <div className="mx-auto flex max-w-lg items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Total</p>
+            <p className="truncate font-display text-lg font-semibold tabular-nums">
+              {quote ? formatPkr(quote.total) : "…"}
+            </p>
+          </div>
+          <Button type="submit" form={undefined} className="min-h-11 min-w-[9.5rem]" disabled={blocked} onClick={handleSubmit(onSubmit)}>
+            {formState.isSubmitting ? "Placing…" : "Place order"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

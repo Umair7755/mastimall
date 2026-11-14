@@ -5,17 +5,24 @@ import { ProductListing } from "@/components/catalog/ProductListing";
 import { ListingSkeleton } from "@/components/ui/Skeleton";
 import { BUDGETS, DEFAULT_FILTERS, budgetBySlug } from "@/lib/constants";
 import { getDepartments, getProducts } from "@/lib/data";
-import { productQuery } from "@/lib/paths";
+import { one, productQuery } from "@/lib/paths";
 
 export function generateStaticParams() {
   return BUDGETS.map((item) => ({ limit: item.slug }));
 }
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata({ params, searchParams }) {
   const { limit } = await params;
+  const query = await searchParams;
   const match = budgetBySlug(limit);
+  const department = one(query?.department);
   if (!match) return { title: "Budget" };
-  return { title: match.label, description: `Toys ${match.label.toLowerCase()}.`, alternates: { canonical: `/budget/${limit}` } };
+  const scope = department === "decor" ? "Décor" : department === "toys" ? "Toys" : "Shop";
+  return {
+    title: `${match.label} · ${scope}`,
+    description: `${scope} ${match.label.toLowerCase()}.`,
+    alternates: { canonical: `/budget/${limit}` },
+  };
 }
 
 async function BudgetContent({ params, searchParams }) {
@@ -23,22 +30,41 @@ async function BudgetContent({ params, searchParams }) {
   const match = budgetBySlug(limit);
   if (!match) notFound();
   const query = await searchParams;
+  const department = one(query.department);
   const departments = await getDepartments().catch(() => []);
-  const categories = departments.flatMap((department) =>
-    (department.categories || []).map((category) => ({ ...category, href: `/${department.slug}/${category.slug}` }))
+  const scoped =
+    department && departments.length
+      ? departments.filter((item) => item.slug === department)
+      : departments;
+  const categories = scoped.flatMap((item) =>
+    (item.categories || []).map((category) => ({ ...category, href: `/${item.slug}/${category.slug}` }))
   );
   let result = { items: [], total: 0, page: 1, pages: 0 };
   let problem = "";
   try {
-    result = (await getProducts(productQuery({ maxPrice: match.max, excludeAdult: true, searchParams: query }))) || result;
+    result =
+      (await getProducts(
+        productQuery({
+          maxPrice: match.max,
+          department: department || undefined,
+          excludeAdult: department !== "decor",
+          searchParams: query,
+        })
+      )) || result;
   } catch (error) {
     problem = error.message;
   }
+  const title =
+    department === "decor"
+      ? `Décor ${match.label.toLowerCase()}`
+      : department === "toys"
+        ? `Toys ${match.label.toLowerCase()}`
+        : match.label;
   return (
     <>
       <BudgetTiles title="Pick a budget" />
       <ProductListing
-        title={match.label}
+        title={title}
         pathname={`/budget/${limit}`}
         searchParams={query}
         result={result}
@@ -47,7 +73,12 @@ async function BudgetContent({ params, searchParams }) {
         problem={problem}
         breadcrumbs={[
           { label: "Home", href: "/" },
-          { label: match.label, href: `/budget/${limit}` },
+          ...(department === "decor"
+            ? [{ label: "Decor", href: "/decor" }]
+            : department === "toys"
+              ? [{ label: "Toys", href: "/toys" }]
+              : []),
+          { label: match.label, href: `/budget/${limit}${department ? `?department=${department}` : ""}` },
         ]}
       />
     </>

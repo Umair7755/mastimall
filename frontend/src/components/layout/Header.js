@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Gift,
   Heart,
+  Home,
   LayoutGrid,
   Menu,
   Percent,
@@ -17,6 +18,7 @@ import {
 import { motion } from "motion/react";
 import { MastiLogo } from "@/components/brand/MastiLogo";
 import { SearchField } from "@/components/layout/SearchField";
+import { MobileShopLinks } from "@/components/layout/MobileShopLinks";
 import { PictureTile } from "@/components/home/PictureTile";
 import { useCartReady } from "@/hooks/useStoreReady";
 import { apiFetch } from "@/lib/browser";
@@ -26,40 +28,61 @@ import { CONTAINER } from "@/lib/layout";
 import { cn } from "@/lib/cn";
 
 const NAV_TONES = {
+  home: {
+    shell:
+      "border-[#fde68a] bg-gradient-to-r from-[#fffbeb] via-[#fef3c7] to-[#ffedd5] text-[#92400e] hover:brightness-[1.03] hover:shadow-sm",
+    icon: "bg-white text-[#d97706] ring-[#fde68a]",
+    open: "ring-2 ring-[#fbbf24] shadow-sm",
+    split: "border-[#fde68a]/80 hover:bg-white/70",
+  },
   toys: {
     shell:
       "border-[#c7d2fe] bg-gradient-to-r from-[#eef2ff] via-[#e0e7ff] to-[#f5f3ff] text-[#3730a3] hover:brightness-[1.03] hover:shadow-sm",
     icon: "bg-white text-[#4f46e5] ring-[#c7d2fe]",
     open: "ring-2 ring-[#a5b4fc] shadow-sm",
+    split: "border-[#c7d2fe]/80 hover:bg-white/70",
+  },
+  decor: {
+    shell:
+      "border-teal-200 bg-gradient-to-r from-[#ecfdf5] via-[#f0fdfa] to-[#e0f2fe] text-teal-900 hover:brightness-[1.03] hover:shadow-sm",
+    icon: "bg-white text-teal-700 ring-teal-200",
+    open: "ring-2 ring-teal-300 shadow-sm",
+    split: "border-teal-200/80 hover:bg-white/70",
   },
   sale: {
     shell:
       "border-[#fda4af] bg-gradient-to-r from-[#fff1f2] via-[#ffe4e6] to-[#ffedd5] text-[#9f1239] hover:brightness-[1.03] hover:shadow-sm",
     icon: "bg-white text-[#e11d48] ring-[#fda4af]",
     open: "ring-2 ring-[#fb7185] shadow-sm",
+    split: "border-[#fda4af]/80 hover:bg-white/70",
   },
   neu: {
     shell:
       "border-[#86efac] bg-gradient-to-r from-[#ecfdf5] via-[#d1fae5] to-[#e0f2fe] text-[#065f46] hover:brightness-[1.03] hover:shadow-sm",
     icon: "bg-white text-[#059669] ring-[#86efac]",
     open: "ring-2 ring-[#6ee7b7] shadow-sm",
+    split: "border-[#86efac]/80 hover:bg-white/70",
   },
   default: {
     shell:
       "border-line/80 bg-gradient-to-r from-white to-[#f8fafc] text-ink hover:border-brand/30 hover:shadow-sm",
     icon: "bg-brand-soft text-brand ring-brand/15",
     open: "ring-2 ring-brand/30 shadow-sm",
+    split: "border-line/80 hover:bg-white/70",
   },
 };
 
 function navMeta(item) {
   const key = `${item.label || ""} ${item.href || ""}`.toLowerCase();
   const label = String(item.label || "").trim();
-  if (item.kind === "department" || key.includes("toy")) {
-    return { Icon: Gift, label: label || "Toys", hint: "Browse toys", tone: "toys" };
+  if (item.kind === "home" || item.href === "/" || label.toLowerCase() === "home") {
+    return { Icon: Home, label: "Home", hint: "Mall home", tone: "home" };
   }
-  if (key.includes("decor") || key.includes("décor")) {
-    return { Icon: Sofa, label: label || "Decor", hint: "Home decor", tone: "decor" };
+  if (key.includes("decor") || key.includes("décor") || item.href === "/decor") {
+    return { Icon: Sofa, label: label || "Decor", hint: "Home décor", tone: "decor" };
+  }
+  if (item.kind === "department" || key.includes("toy") || item.href === "/toys") {
+    return { Icon: Gift, label: label || "Toys", hint: "Browse toys", tone: "toys" };
   }
   if (key.includes("deal") || key.includes("sale")) {
     return { Icon: Percent, label: "Sale deals", hint: "Toys on sale", tone: "sale" };
@@ -220,9 +243,7 @@ export function Header({ nav = [], departments = [] }) {
                 Welcome {welcomeName}
               </Link>
             ) : null}
-            <div className="hidden sm:block">
-              <HeaderAction href="/wishlist" icon={Heart} label="Wishlist" tone="love" />
-            </div>
+            <HeaderAction href="/wishlist" icon={Heart} label="Wishlist" tone="love" compactOnMobile />
             <div className="hidden lg:block">
               <HeaderAction
                 href="/account"
@@ -242,8 +263,9 @@ export function Header({ nav = [], departments = [] }) {
           </div>
         </div>
 
-        <div className="mt-2.5 lg:hidden">
+        <div className="mt-2.5 space-y-2.5 lg:hidden">
           <SearchField id="store-search-mobile" />
+          <MobileShopLinks />
         </div>
 
         <nav
@@ -300,8 +322,7 @@ export function Header({ nav = [], departments = [] }) {
               }
 
               const slug = String(item.href).replace(/^\//, "").split("?")[0];
-              const department =
-                item.kind === "department" ? departments.find((entry) => entry.slug === slug) : null;
+              const department = departments.find((entry) => entry.slug === slug);
 
               if (!department) {
                 return (
@@ -329,55 +350,89 @@ export function Header({ nav = [], departments = [] }) {
               }
 
               const menuOpen = openSlug === department.slug;
+              const isDecorDept = department.slug === "decor" || department.themeKey === "decor";
+              const cats = department.categories || [];
               return (
                 <div key={item.label} className="relative" ref={menuOpen ? menuRef : null}>
-                  <button
-                    type="button"
-                    title={hint}
-                    aria-expanded={menuOpen}
-                    aria-haspopup="true"
-                    onClick={() => setOpenSlug(menuOpen ? "" : department.slug)}
+                  <div
                     className={cn(
-                      "inline-flex h-12 cursor-pointer items-center gap-2 rounded-full border px-3.5 font-display text-base font-semibold transition",
+                      "inline-flex h-12 items-stretch overflow-hidden rounded-full border font-display text-base font-semibold transition",
                       theme.shell,
                       menuOpen && theme.open
                     )}
                   >
-                    <span className={cn("grid h-7 w-7 place-items-center rounded-full ring-1", theme.icon)}>
-                      <Icon size={15} strokeWidth={2.25} aria-hidden="true" />
-                    </span>
-                    {label}
-                    <ChevronDown
-                      aria-hidden="true"
-                      size={16}
-                      className={cn("opacity-70 transition duration-200", menuOpen && "rotate-180")}
-                    />
-                  </button>
+                    <Link
+                      href={`/${department.slug}`}
+                      title={`Open ${label}`}
+                      onClick={() => setOpenSlug("")}
+                      className="inline-flex cursor-pointer items-center gap-2 py-0 pl-3.5 pr-2.5 transition hover:brightness-[1.04]"
+                    >
+                      <span className={cn("grid h-7 w-7 place-items-center rounded-full ring-1", theme.icon)}>
+                        <Icon size={15} strokeWidth={2.25} aria-hidden="true" />
+                      </span>
+                      {label}
+                    </Link>
+                    <button
+                      type="button"
+                      title={`${label} categories`}
+                      aria-label={`${label} categories`}
+                      aria-expanded={menuOpen}
+                      aria-haspopup="true"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setOpenSlug(menuOpen ? "" : department.slug);
+                      }}
+                      className={cn(
+                        "inline-flex cursor-pointer items-center border-l px-2.5 transition",
+                        theme.split
+                      )}
+                    >
+                      <ChevronDown
+                        aria-hidden="true"
+                        size={16}
+                        className={cn("opacity-80 transition duration-200", menuOpen && "rotate-180")}
+                      />
+                    </button>
+                  </div>
                   {menuOpen ? (
                     <div className="absolute left-0 top-[calc(100%+0.5rem)] z-30 w-[min(44rem,calc(100vw-2rem))] rounded-2xl border border-line/70 bg-white p-4 shadow-lift">
                       <div className="mb-3 flex items-center justify-between gap-3">
-                        <p className="font-display text-base font-semibold text-ink">Pick a toy type</p>
+                        <div>
+                          <p className="font-display text-base font-semibold text-ink">
+                            {isDecorDept ? "Pick a décor type" : "Pick a toy type"}
+                          </p>
+                          <p className="text-xs text-ink-muted">
+                            Or open {label.toLowerCase()} to browse the full shelf
+                          </p>
+                        </div>
                         <Link
                           href={`/${department.slug}`}
-                          className="cursor-pointer text-sm font-semibold text-brand hover:underline"
+                          className="cursor-pointer rounded-full bg-ink px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand"
                           onClick={() => setOpenSlug("")}
                         >
-                          See all toys
+                          See all {label.toLowerCase()}
                         </Link>
                       </div>
-                      <div className="grid grid-cols-4 gap-3">
-                        {(department.categories || []).slice(0, 8).map((category) => (
-                          <PictureTile
-                            key={category.id}
-                            href={`/${department.slug}/${category.slug}`}
-                            title={category.name}
-                            image={category.image?.url}
-                            color={category.color}
-                            shape="circle"
-                            onClick={() => setOpenSlug("")}
-                          />
-                        ))}
-                      </div>
+                      {cats.length ? (
+                        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                          {cats.slice(0, 12).map((category) => (
+                            <PictureTile
+                              key={category.id}
+                              href={`/${department.slug}/${category.slug}`}
+                              title={category.name}
+                              image={category.image?.url}
+                              color={category.color}
+                              shape="circle"
+                              onClick={() => setOpenSlug("")}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="rounded-xl bg-canvas px-3 py-4 text-sm text-ink-muted">
+                          Categories will show here once this department is stocked.
+                        </p>
+                      )}
                     </div>
                   ) : null}
                 </div>

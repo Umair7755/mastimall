@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 
 function sortChip(selected) {
   return cn(
-    "inline-flex min-h-9 items-center rounded-lg border px-3 text-sm transition",
+    "inline-flex min-h-10 shrink-0 items-center rounded-lg border px-3 text-sm transition",
     selected
       ? "border-brand bg-brand text-white"
       : "border-line/80 bg-white text-ink hover:border-brand/40 hover:bg-brand-soft/50"
@@ -15,7 +15,7 @@ function sortChip(selected) {
 export function SortBar({ pathname, searchParams = {} }) {
   const selected = one(searchParams.sort) || "popular";
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="no-scrollbar -mx-1 flex items-center gap-2 overflow-x-auto overscroll-x-contain px-1 pb-0.5 sm:flex-wrap sm:overflow-visible">
       {SORTS.map((sort) => (
         <Link
           key={sort.id}
@@ -25,12 +25,12 @@ export function SortBar({ pathname, searchParams = {} }) {
           {sort.label}
         </Link>
       ))}
-      <details className="relative">
+      <details className="relative shrink-0">
         <summary className={sortChip(selected === SORT_MORE.id)}>More</summary>
         <div className="absolute right-0 z-20 mt-2 min-w-44 rounded-xl border border-line bg-white p-1.5 shadow-lift">
           <Link
             href={hrefWith(pathname, searchParams, { sort: SORT_MORE.id })}
-            className="flex min-h-10 items-center rounded-lg px-3 text-sm hover:bg-brand-soft"
+            className="flex min-h-11 items-center rounded-lg px-3 text-sm hover:bg-brand-soft"
           >
             {SORT_MORE.label}
           </Link>

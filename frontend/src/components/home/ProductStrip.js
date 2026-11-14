@@ -1,12 +1,24 @@
 import Link from "next/link";
-import { Flame, Sparkles } from "lucide-react";
+import { Flame, ShoppingBag, Sparkles } from "lucide-react";
 import { getProducts } from "@/lib/data";
+import { ProductMarquee } from "@/components/home/ProductMarquee";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { CONTAINER } from "@/lib/layout";
 
 function stripMeta(section) {
   const config = section.config || {};
+  if (config.all || config.catalog) {
+    return {
+      title: section.title || "All toys",
+      text: "The full shelf — drifts for you, pause anytime.",
+      icon: ShoppingBag,
+      moreHref: "/search",
+      hot: false,
+      shell: "bg-gradient-to-br from-[#e8f4ff] via-white to-[#ffe8f3]",
+      marquee: true,
+    };
+  }
   if (config.featured || /best|hot|popular/i.test(section.title || "")) {
     return {
       title: "Hot right now",
@@ -28,7 +40,7 @@ function stripMeta(section) {
     };
   }
   return {
-    title: section.title,
+    title: section.title || "Toys",
     text: "",
     icon: Sparkles,
     moreHref: "/search",
@@ -41,11 +53,12 @@ export async function ProductStrip({ section }) {
   const config = section.config || {};
   const params = new URLSearchParams();
   params.set("limit", String(config.limit || 12));
-  const isNewStrip = Boolean(config.isNew) || /new/i.test(section.title || "");
-  // Home "New arrivals" shows newest products by date — don't require the New badge flag.
-  params.set("sort", isNewStrip ? "new" : config.sort || "popular");
-  if (config.featured && !isNewStrip) params.set("featured", "1");
-  if (config.department) params.set("department", config.department);
+  const isAll = Boolean(config.all || config.catalog);
+  const isNewStrip = !isAll && (Boolean(config.isNew) || /new/i.test(section.title || ""));
+  // Home "New arrivals" / all-catalog show by date; hot keeps featured filter.
+  params.set("sort", isAll || isNewStrip ? config.sort || "new" : config.sort || "popular");
+  if (!isAll && config.featured && !isNewStrip) params.set("featured", "1");
+  if (!isAll && config.department) params.set("department", config.department);
   if (config.onSale) params.set("onSale", "1");
 
   let items = [];
@@ -61,22 +74,44 @@ export async function ProductStrip({ section }) {
   const Icon = meta.icon;
 
   return (
-    <section className={`${CONTAINER} py-3 lg:py-5`}>
-      <div className={`rounded-[1.5rem] ${meta.shell} p-3 sm:p-4 lg:p-5`}>
-        <SectionHeading
-          title={meta.title}
-          text={meta.text}
-          action={
-            <Link
-              href={meta.moreHref}
-              className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-4 font-display text-sm text-white"
-            >
-              <Icon aria-hidden="true" size={15} />
-              See all
-            </Link>
-          }
-        />
-        <ProductGrid products={items} layout={config.layout === "row" ? "row" : "grid"} hot={meta.hot} />
+    <section className={`${CONTAINER} py-2.5 lg:py-4`}>
+      <div
+        className={`relative overflow-hidden rounded-[1.5rem] ${meta.shell} p-3 sm:p-4 lg:p-5 ${
+          meta.marquee ? "ring-1 ring-black/5 shadow-soft" : ""
+        }`}
+      >
+        {meta.marquee ? (
+          <>
+            <div
+              className="pointer-events-none absolute -left-10 top-0 h-28 w-28 rounded-full bg-sun/30 blur-3xl"
+              aria-hidden="true"
+            />
+            <div
+              className="pointer-events-none absolute -right-8 bottom-0 h-32 w-32 rounded-full bg-brand/20 blur-3xl"
+              aria-hidden="true"
+            />
+          </>
+        ) : null}
+        <div className="relative">
+          <SectionHeading
+            title={meta.title}
+            text={meta.text}
+            action={
+              <Link
+                href={meta.moreHref}
+                className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-4 font-display text-sm text-white"
+              >
+                <Icon aria-hidden="true" size={15} />
+                See all
+              </Link>
+            }
+          />
+          {meta.marquee ? (
+            <ProductMarquee products={items} />
+          ) : (
+            <ProductGrid products={items} layout={config.layout === "row" ? "row" : "grid"} hot={meta.hot} />
+          )}
+        </div>
       </div>
     </section>
   );

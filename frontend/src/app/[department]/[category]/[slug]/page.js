@@ -53,7 +53,10 @@ async function ProductContent({ params }) {
   const reviews = data?.reviews || [];
 
   return (
-    <div data-department={product.department?.themeKey} className="mx-auto w-full max-w-[1920px] px-2 py-6 pb-36 sm:px-3 lg:px-4 xl:px-5 lg:pb-8">
+    <div
+      data-department={product.department?.themeKey}
+      className="mx-auto w-full max-w-[1920px] px-2 py-6 pb-[calc(var(--mobile-chrome-bottom)+var(--mobile-buybar-h)+1rem)] sm:px-3 lg:px-4 xl:px-5 lg:pb-8"
+    >
       <Breadcrumbs
         items={[
           { label: "Home", href: "/" },
@@ -91,7 +94,9 @@ async function ProductContent({ params }) {
       <div className="grid gap-8 lg:grid-cols-2">
         <Gallery product={product} />
         <div>
-          <h1 className="font-display text-[32px] font-semibold lg:text-[44px]">{product.title}</h1>
+          <h1 className="font-display text-[28px] font-semibold leading-tight sm:text-[32px] lg:text-[44px]">
+            {product.title}
+          </h1>
           {(product.ratingCount > 0 || product.ratingAvg > 0) ? (
             <div className="mt-3">
               <StarRating value={product.ratingAvg} count={product.ratingCount} size={18} />

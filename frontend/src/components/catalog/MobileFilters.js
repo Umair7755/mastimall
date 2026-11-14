@@ -19,8 +19,18 @@ export function MobileFilters({ children }) {
         </span>
         Filters
       </Button>
-      <Drawer open={open} onClose={() => setOpen(false)} title="Filters" side="bottom">
-        <div className="pb-6">{children}</div>
+      <Drawer
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Filters"
+        side="bottom"
+        footer={
+          <Button className="w-full min-h-12" onClick={() => setOpen(false)}>
+            Done
+          </Button>
+        }
+      >
+        <div className="pb-2">{children}</div>
       </Drawer>
     </>
   );

@@ -5,11 +5,13 @@ const variants = {
   primary:
     "bg-brand text-white hover:bg-brand-dark active:scale-[0.98]",
   cart:
-    "bg-sun text-ink shadow-soft hover:brightness-105 hover:shadow-lift active:scale-[0.98]",
+    /* Fixed toys yellow — never follows decor theme --color-sun */
+    "bg-[#fbbf24] text-ink shadow-soft hover:brightness-105 hover:shadow-lift active:scale-[0.98]",
   secondary:
     "border border-line bg-white text-ink hover:border-brand hover:bg-brand-soft",
   sun:
-    "bg-sun text-ink hover:brightness-105 active:scale-[0.98]",
+    /* Same fixed yellow as toys so Decor Add buttons match */
+    "bg-[#fbbf24] text-ink hover:brightness-105 active:scale-[0.98]",
   soft:
     "bg-brand-soft text-brand hover:bg-brand hover:text-white",
   ghost:

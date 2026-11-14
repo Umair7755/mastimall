@@ -18,7 +18,7 @@ export default function Hero3D() {
   return (
     <motion.div
       ref={frame}
-      className="hero-stage relative h-[34vh] min-h-52 w-full overflow-hidden lg:h-[min(520px,52vh)] lg:min-h-[420px]"
+      className="hero-stage relative h-[28vh] min-h-40 w-full overflow-hidden sm:min-h-48 lg:h-[min(520px,52vh)] lg:min-h-[420px]"
       style={{ perspective: 900 }}
       initial={reduceMotion ? false : { opacity: 0, rotateX: 8, y: 18 }}
       animate={{ opacity: 1, rotateX: 0, y: 0 }}

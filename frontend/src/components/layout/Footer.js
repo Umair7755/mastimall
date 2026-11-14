@@ -60,7 +60,7 @@ export function Footer({ departments = [], whatsapp = "" }) {
             <MastiLogo height={56} className="text-[56px]" />
             <p className="mt-2 text-sm font-medium text-sun/90">Easy for kids. Fast for parents.</p>
             <p className="mt-3 max-w-xs text-white/85">
-              Toys for families in Pakistan. Browse by category, age or budget — then order in under a minute.
+              Toys + décor for Pakistani homes. Browse by age, room, or budget — then order in under a minute.
             </p>
             {wa ? (
               <a

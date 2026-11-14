@@ -75,7 +75,7 @@ async function StorefrontChrome({ children }) {
         <StoreBanner message={home.announcement} />
       </Suspense>
       <Header nav={home.nav} departments={departments} />
-      <main id="content" className="flex-1 pb-28 lg:pb-0">
+      <main id="content" className="mobile-chrome-pad flex-1">
         {children}
       </main>
       <Footer departments={departments} whatsapp={home.whatsapp} />
@@ -91,7 +91,7 @@ async function StorefrontChrome({ children }) {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${fredoka.variable} ${nunito.variable} h-full`}>
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-full flex-col overflow-x-hidden">
         <Providers>
           <Suspense fallback={children}>
             <StorefrontChrome>{children}</StorefrontChrome>

@@ -72,25 +72,64 @@ const HERO_TITLE = 'Toys + décor. Full masti.';
 const HERO_TEXT =
   'Bacchon ke toys aur ghar ka décor — dono ek jagah. Bas teen taps, asaan shopping.';
 
+/** StoreHome owns product rails; keep hero/trust and drop legacy filter blocks. */
+function normalizeHomeSections(sections = []) {
+  return sections
+    .filter((section) => section && section.active !== false)
+    .filter((section) => !['categories', 'audience', 'age', 'budget', 'finder'].includes(section.type))
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+}
+
+function normalizeHomeNav(nav = []) {
+  const next = (Array.isArray(nav) ? nav : []).map((item) => {
+    const label = String(item.label || '').toLowerCase();
+    if (label === 'home' || item.href === '/') {
+      return { ...item, label: 'Home', href: '/', kind: 'home', soon: false };
+    }
+    if (label.includes('decor') || label.includes('décor')) {
+      return { ...item, href: '/decor', soon: false, kind: 'department' };
+    }
+    return item;
+  });
+  if (!next.some((item) => String(item.href || '') === '/' || String(item.label || '').toLowerCase() === 'home')) {
+    next.unshift({ label: 'Home', href: '/', kind: 'home' });
+  } else {
+    const homeIndex = next.findIndex(
+      (item) => String(item.href || '') === '/' || String(item.label || '').toLowerCase() === 'home'
+    );
+    if (homeIndex > 0) {
+      const [home] = next.splice(homeIndex, 1);
+      next.unshift(home);
+    }
+  }
+  if (!next.some((item) => String(item.href || '').includes('/decor'))) {
+    const toysIndex = next.findIndex((item) => String(item.href || '').includes('/toys'));
+    next.splice(toysIndex >= 0 ? toysIndex + 1 : 1, 0, {
+      label: 'Decor',
+      href: '/decor',
+      kind: 'department',
+    });
+  }
+  return next;
+}
+
 async function loadHome() {
   const doc = await MallSetting.findOne({ key: 'home' }).lean();
   const value = doc?.value || {};
-  const sections = Array.isArray(value.sections) ? [...value.sections] : [];
-  sections.sort((a, b) => (a.order || 0) - (b.order || 0));
+  const raw = Array.isArray(value.sections) ? [...value.sections] : [];
+  const sections = normalizeHomeSections(raw);
   return {
     announcement: value.announcement || '',
     whatsapp: value.whatsapp || '',
-    nav: value.nav || [],
-    sections: sections
-      .filter((section) => section.active !== false)
-      .map((section) => {
-        if (section.type !== 'hero') return section;
-        return {
-          ...section,
-          title: HERO_TITLE,
-          config: { ...(section.config || {}), text: HERO_TEXT },
-        };
-      }),
+    nav: normalizeHomeNav(value.nav || []),
+    sections: sections.map((section) => {
+      if (section.type !== 'hero') return section;
+      return {
+        ...section,
+        title: HERO_TITLE,
+        config: { ...(section.config || {}), text: HERO_TEXT },
+      };
+    }),
   };
 }
 
@@ -287,6 +326,14 @@ mall.get(
     if (req.query.q) {
       const pattern = new RegExp(escapeRegex(String(req.query.q).trim()), 'i');
       scope.$or = [{ title: pattern }, { brand: pattern }, { tags: pattern }];
+    }
+
+    if (req.query.tag) {
+      const tags = String(req.query.tag)
+        .split(',')
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean);
+      if (tags.length) scope.tags = { $in: tags };
     }
 
     if (req.query.excludeAdult === '1') {

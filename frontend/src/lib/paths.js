@@ -40,13 +40,14 @@ export function productQuery(input) {
     if (value != null && value !== "" && value !== false) params.set(key, String(value));
   };
 
-  set("department", input.department);
-  set("category", input.category);
+  set("department", one(query.department) || input.department);
+  set("category", one(query.category) || input.category);
   set("audience", one(query.audience) || input.audience);
   set("age", one(query.age) || input.age);
   set("minPrice", one(query.minPrice) || input.minPrice);
   set("maxPrice", one(query.maxPrice) || input.maxPrice);
   set("brand", one(query.brand));
+  set("tag", one(query.tag) || input.tag);
   set("inStock", one(query.inStock));
   set("onSale", one(query.onSale));
   set("isNew", one(query.isNew));

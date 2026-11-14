@@ -7,29 +7,8 @@ import { useQuote } from "@/hooks/useQuote";
 import { formatPkr } from "@/lib/format";
 import { useCart } from "@/store/cart";
 
-export function CartContents({ shopHref = "/", onKeep, checkout = "link" }) {
-  const ready = useCartReady();
-  const items = useCart((state) => state.items);
-  const setQty = useCart((state) => state.setQty);
-  const remove = useCart((state) => state.remove);
-  const closeDrawer = useCart((state) => state.closeDrawer);
-  const { quote, loading, error } = useQuote(items);
-  const prices = new Map((quote?.lines || []).map((line) => [line.productId, line]));
-
-  if (!ready) return <div className="skeleton h-40 rounded-card" />;
-
-  if (!items.length) {
-    return (
-      <div className="py-8">
-        <p className="font-display text-2xl">Your cart is empty. Pick a toy to start.</p>
-        <ButtonLink href={shopHref} className="mt-6">
-          Pick a toy
-        </ButtonLink>
-      </div>
-    );
-  }
-
-  const footer = (
+function CartFooterActions({ shopHref, onKeep, quote, loading, error, closeDrawer, checkout }) {
+  return (
     <div className="grid gap-3">
       {error ? <p className="text-danger">{error}</p> : null}
       {quote?.problems?.map((problem) => (
@@ -44,7 +23,8 @@ export function CartContents({ shopHref = "/", onKeep, checkout = "link" }) {
       {quote?.fee === 0 ? <p className="text-sm text-ink-muted">Delivery is free on this order.</p> : null}
       {quote?.fee > 0 ? (
         <p className="text-sm text-ink-muted">
-          Delivery {formatPkr(quote.fee)}. Add {formatPkr(Math.max(0, quote.freeShippingAt - quote.subtotal))} more for free delivery.
+          Delivery {formatPkr(quote.fee)}. Add {formatPkr(Math.max(0, quote.freeShippingAt - quote.subtotal))} more for
+          free delivery.
         </p>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
@@ -65,13 +45,67 @@ export function CartContents({ shopHref = "/", onKeep, checkout = "link" }) {
       </div>
     </div>
   );
+}
+
+export function CartContents({ shopHref = "/", onKeep, checkout = "link", hideFooter = false }) {
+  const ready = useCartReady();
+  const items = useCart((state) => state.items);
+  const setQty = useCart((state) => state.setQty);
+  const remove = useCart((state) => state.remove);
+  const closeDrawer = useCart((state) => state.closeDrawer);
+  const { quote, loading, error } = useQuote(items);
+  const prices = new Map((quote?.lines || []).map((line) => [line.productId, line]));
+
+  if (!ready) return <div className="skeleton h-40 rounded-card" />;
+
+  if (!items.length) {
+    return (
+      <div className="py-8">
+        <p className="font-display text-2xl">Your cart is empty. Pick a toy to start.</p>
+        <ButtonLink href={shopHref} className="mt-6" onClick={onKeep}>
+          Pick a toy
+        </ButtonLink>
+      </div>
+    );
+  }
 
   return (
     <div>
       {items.map((item) => (
         <CartLine key={item.productId} item={item} priced={prices.get(item.productId)} onQty={setQty} onRemove={remove} />
       ))}
-      <div className="pt-4">{footer}</div>
+      {hideFooter ? null : (
+        <div className="pt-4">
+          <CartFooterActions
+            shopHref={shopHref}
+            onKeep={onKeep}
+            quote={quote}
+            loading={loading}
+            error={error}
+            closeDrawer={closeDrawer}
+            checkout={checkout}
+          />
+        </div>
+      )}
     </div>
+  );
+}
+
+/** Pinned footer for the cart drawer. */
+export function CartCheckoutFooter({ shopHref = "/", onKeep }) {
+  const items = useCart((state) => state.items);
+  const closeDrawer = useCart((state) => state.closeDrawer);
+  const { quote, loading, error } = useQuote(items);
+  if (!items.length) return null;
+  return (
+    <CartFooterActions
+      shopHref={shopHref}
+      onKeep={onKeep}
+      quote={quote}
+      loading={loading}
+      error={error}
+      closeDrawer={closeDrawer}
+      checkout="link"
+    />
   );
 }

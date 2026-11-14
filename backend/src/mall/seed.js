@@ -724,10 +724,11 @@ await MallSetting.create({
     announcement: 'Cash on delivery across Pakistan · Prices checked on our server.',
     whatsapp: '',
     nav: [
+      { label: 'Home', href: '/', kind: 'home' },
       { label: 'Toys', href: '/toys', kind: 'department' },
-      { label: 'Decor', href: null, soon: true },
+      { label: 'Decor', href: '/decor', kind: 'department' },
       { label: 'Deals', href: '/search?onSale=1' },
-      { label: 'New arrivals', href: '/search?sort=new' }, // newest by date (home strip matches)
+      { label: 'New arrivals', href: '/search?sort=new' },
     ],
     sections: [
       {
@@ -740,39 +741,37 @@ await MallSetting.create({
         },
       },
       {
-        type: 'categories',
-        title: 'Top categories',
+        type: 'finder',
+        title: 'Find toys',
         order: 1,
-        active: true,
-        config: { department: 'toys', limit: 10 },
-      },
-      { type: 'audience', title: 'Shop for', order: 2, active: true },
-      { type: 'age', title: 'Shop by age', order: 3, active: true },
-      {
-        type: 'budget',
-        title: 'Shop by budget',
-        order: 4,
         active: true,
         config: { limits: [500, 1000, 2000, 5000] },
       },
       {
         type: 'products',
+        title: 'All toys',
+        order: 2,
+        active: true,
+        config: { all: true, sort: 'new', limit: 24, layout: 'row' },
+      },
+      {
+        type: 'products',
         title: 'Hot right now',
-        order: 5,
+        order: 3,
         active: true,
         config: { sort: 'popular', featured: true, limit: 12, layout: 'row' },
       },
       {
         type: 'products',
         title: 'New arrivals',
-        order: 6,
+        order: 4,
         active: true,
         config: { sort: 'new', isNew: true, limit: 12, layout: 'row' },
       },
       {
         type: 'trust',
         title: 'Why Masti Mall',
-        order: 7,
+        order: 5,
         active: true,
         config: {
           points: [
@@ -783,7 +782,7 @@ await MallSetting.create({
           ],
         },
       },
-      { type: 'reviews', title: 'Kind words', order: 8, active: false, config: { items: [] } },
+      { type: 'reviews', title: 'Kind words', order: 6, active: false, config: { items: [] } },
     ],
   },
 });
@@ -810,6 +809,9 @@ await MallCustomer.create({
 
 console.log(`Seeded Toys with ${categories.length} categories and ${products.length} products.`);
 console.log(`Admin login: ${adminEmail} / (see MALL_ADMIN_PASSWORD or default Admin@12345)`);
+
+  const { ensureDecorCatalog } = await import('./lib/ensureDecor.js');
+  await ensureDecorCatalog();
 }
 
 const invokedDirectly = process.argv[1]?.endsWith('seed.js');

@@ -70,14 +70,14 @@ export function Gallery({ product }) {
         )}
       </div>
       {photos.length > 1 && tab === "photos" ? (
-        <div className="mt-3 flex gap-2">
+        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto overscroll-x-contain pb-1">
           {photos.map((item, photoIndex) => (
             <button
               key={item.url}
               type="button"
               aria-label={`Photo ${photoIndex + 1}`}
               onClick={() => setIndex(photoIndex)}
-              className={`relative h-16 w-16 overflow-hidden rounded-media border-2 ${photoIndex === index ? "border-brand" : "border-line"}`}
+              className={`relative h-16 w-16 shrink-0 snap-start overflow-hidden rounded-media border-2 ${photoIndex === index ? "border-brand" : "border-line"}`}
             >
               <ToyImage src={item.url} alt="" sizes="64px" className="object-contain" />
             </button>
