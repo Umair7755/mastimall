@@ -91,15 +91,14 @@ export function ProductMarquee({ products = [] }) {
     const node = scroller.current;
     if (!node) return undefined;
 
-    const desktop = window.matchMedia("(min-width: 1024px)").matches;
-    if (!desktop) return undefined;
-
+    // Same gentle auto-slide on mobile + desktop (pause on touch / wheel).
+    const step = window.matchMedia("(min-width: 1024px)").matches ? 1.2 : 0.85;
     const timer = window.setInterval(() => {
       if (document.visibilityState === "hidden") return;
       if (Date.now() < pauseUntil.current) return;
       if (node.scrollWidth <= node.clientWidth + 8) return;
       const max = node.scrollWidth - node.clientWidth;
-      const next = node.scrollLeft + 1.2;
+      const next = node.scrollLeft + step;
       node.scrollLeft = next >= max - 2 ? 0 : next;
     }, 32);
 
@@ -127,10 +126,10 @@ export function ProductMarquee({ products = [] }) {
     "ring-1 ring-ink/10 transition active:scale-95 sm:h-10 sm:w-10 lg:h-11 lg:w-11";
 
   return (
-    <div className="relative py-1">
+    <div className="relative -mx-3 py-1 sm:mx-0">
       <div
         ref={scroller}
-        className="no-scrollbar flex gap-3 overflow-x-auto overscroll-x-contain pb-1 sm:gap-4"
+        className="no-scrollbar flex gap-3 overflow-x-auto overscroll-x-contain px-3 pb-1 sm:gap-4 sm:px-0"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {products.map((product) => (
@@ -159,7 +158,7 @@ export function ProductMarquee({ products = [] }) {
       >
         <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.75} aria-hidden="true" />
       </button>
-      <span className="sr-only">Swipe or tap arrows to browse mall picks.</span>
+      <span className="sr-only">Swipe to browse mall picks.</span>
     </div>
   );
 }

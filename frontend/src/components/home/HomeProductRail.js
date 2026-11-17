@@ -3,91 +3,115 @@ import { Flame, ShoppingBag, Sparkles, Sofa } from "lucide-react";
 import { ProductMarquee } from "@/components/home/ProductMarquee";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { CONTAINER } from "@/lib/layout";
 
-/** Compact one-line carousel card widths for home shelves. */
+/** Compact row card widths (desktop / tablet carousels). */
 const COMPACT_ROW =
-  "w-[48%] sm:w-[34%] md:w-[26%] lg:w-[18.5%] xl:w-[15%] 2xl:w-[13%]";
+  "w-[58%] sm:w-[34%] md:w-[26%] lg:w-[18.5%] xl:w-[15%] 2xl:w-[13%]";
 
 const THEMES = {
   mix: {
     title: "Mall picks",
     text: "Toys lead the shelf — décor finishes the room.",
+    eyebrow: "Featured",
     icon: ShoppingBag,
     moreHref: "/search",
-    shell: "bg-gradient-to-br from-[#fff7ec] via-white to-[#ecfdf5] ring-1 ring-black/5 shadow-soft",
+    shell: "border border-black/5 bg-gradient-to-br from-[#fff7ec] via-white to-[#ecfdf5] shadow-soft",
     display: "marquee",
   },
   toysAll: {
     title: "All toys",
-    text: "Swipe the play shelf.",
+    text: "Every toy on the shelf.",
+    eyebrow: "Full shelf",
     icon: ShoppingBag,
     moreHref: "/toys",
-    shell: "bg-gradient-to-br from-[#eef2ff] via-white to-[#fff7ed] ring-1 ring-[#c7d2fe]/70 shadow-soft",
+    shell: "border border-[#c7d2fe]/80 bg-gradient-to-br from-[#eef2ff] via-white to-[#fff7ed] shadow-soft",
     display: "row",
+    mobileDisplay: "grid",
+    mobileLimit: 6,
     compact: true,
   },
   toysFav: {
     title: "Favourite toys",
     text: "What kids keep asking for.",
+    eyebrow: "Popular",
     icon: Flame,
     moreHref: "/search?department=toys&sort=popular&featured=1",
-    shell: "bg-[#fff8ee]",
+    shell: "border border-[#fed7aa]/70 bg-[#fff8ee] shadow-soft",
     display: "row",
+    mobileDisplay: "grid",
+    mobileLimit: 6,
     hot: true,
   },
   toysHot: {
     title: "Hot toys",
     text: "What kids keep asking for.",
+    eyebrow: "Trending",
     icon: Flame,
     moreHref: "/search?department=toys&sort=popular&featured=1",
-    shell: "bg-[#fff8ee]",
+    shell: "border border-[#fed7aa]/70 bg-[#fff8ee] shadow-soft",
     display: "row",
+    mobileDisplay: "grid",
+    mobileLimit: 6,
     hot: true,
   },
   toysNew: {
     title: "New toys",
     text: "Just arrived on the play shelf.",
+    eyebrow: "Just in",
     icon: Sparkles,
     moreHref: "/search?department=toys&isNew=1&sort=new",
-    shell: "bg-gradient-to-br from-white via-[#fffbeb] to-[#f8fafc] ring-1 ring-line/50 shadow-soft",
+    shell: "border border-[#fde68a]/90 bg-gradient-to-br from-[#fffbeb] via-white to-[#f8fafc] shadow-soft",
     display: "row",
+    mobileDisplay: "grid",
+    mobileLimit: 6,
     compact: true,
   },
   decorAll: {
     title: "All décor",
-    text: "Swipe home mood pieces.",
+    text: "Every décor piece on the shelf.",
+    eyebrow: "Full shelf",
     icon: Sofa,
     moreHref: "/decor",
-    shell: "bg-gradient-to-br from-[#ecfdf5] via-white to-[#f0fdfa] ring-1 ring-teal-100 shadow-soft",
+    shell: "border border-teal-100 bg-gradient-to-br from-[#ecfdf5] via-white to-[#f0fdfa] shadow-soft",
     display: "row",
+    mobileDisplay: "grid",
+    mobileLimit: 6,
     compact: true,
   },
   decorHot: {
     title: "Featured décor",
     text: "Pieces that finish a room fast.",
+    eyebrow: "Popular",
     icon: Flame,
     moreHref: "/search?department=decor&sort=popular&featured=1",
-    shell: "bg-[#f0fdfa]",
+    shell: "border border-teal-100 bg-[#f0fdfa] shadow-soft",
     display: "row",
+    mobileDisplay: "grid",
+    mobileLimit: 6,
     hot: true,
   },
   decorNew: {
     title: "New décor",
     text: "Just arrived for the home.",
+    eyebrow: "Just in",
     icon: Sparkles,
     moreHref: "/search?department=decor&isNew=1&sort=new",
-    shell: "bg-gradient-to-br from-white via-[#f0fdfa] to-[#ecfeff] ring-1 ring-teal-100/80 shadow-soft",
+    shell: "border border-teal-100/90 bg-gradient-to-br from-[#f0fdfa] via-white to-[#ecfeff] shadow-soft",
     display: "row",
+    mobileDisplay: "grid",
+    mobileLimit: 6,
     compact: true,
   },
   arrivals: {
     title: "New arrivals",
     text: "Just arrived — toys and décor.",
+    eyebrow: "Just in",
     icon: Sparkles,
     moreHref: "/search?isNew=1&sort=new",
-    shell: "bg-gradient-to-br from-[#fff7ec] via-white to-[#f5f3ff] ring-1 ring-black/5 shadow-soft",
+    shell: "border border-black/5 bg-gradient-to-br from-[#fff7ec] via-white to-[#f5f3ff] shadow-soft",
     display: "row",
+    mobileDisplay: "grid",
+    mobileLimit: 6,
     compact: true,
   },
 };
@@ -101,6 +125,7 @@ export function HomeProductRail({
   flush = false,
   marquee,
   layout,
+  eyebrow,
 }) {
   if (!products?.length) return null;
   const meta = THEMES[theme] || THEMES.mix;
@@ -111,13 +136,20 @@ export function HomeProductRail({
   if (marquee === false && mode === "marquee") mode = "row";
 
   const useCompact = mode === "row" && !!meta.compact;
+  const mobileGrid = mode !== "marquee" && meta.mobileDisplay === "grid";
+  const mobileItems =
+    mobileGrid && meta.mobileLimit ? products.slice(0, meta.mobileLimit) : products;
 
   return (
-    <section className={flush ? "py-0" : `${CONTAINER} py-2.5 lg:py-4`}>
+    <section
+      className={
+        flush
+          ? "py-0"
+          : "mx-auto w-full max-w-[1920px] px-2 py-2.5 sm:px-3 sm:py-3 lg:px-4 lg:py-4 xl:px-5"
+      }
+    >
       <div
-        className={`relative rounded-[1.5rem] ${meta.shell} p-3 sm:p-4 lg:p-5 ${
-          mode === "marquee" ? "overflow-hidden" : "overflow-visible"
-        }`}
+        className={`relative overflow-hidden rounded-2xl px-0 py-3 sm:rounded-[1.5rem] sm:p-4 lg:p-5 ${meta.shell}`}
       >
         {mode === "marquee" ? (
           <>
@@ -126,34 +158,63 @@ export function HomeProductRail({
           </>
         ) : (
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-20 overflow-hidden rounded-[1.5rem] bg-[radial-gradient(ellipse_at_top,rgb(255_255_255_/_0.65),transparent_70%)]"
+            className="pointer-events-none absolute inset-x-0 top-0 h-16 overflow-hidden rounded-[inherit] bg-[radial-gradient(ellipse_at_top,rgb(255_255_255_/_0.7),transparent_70%)]"
             aria-hidden="true"
           />
         )}
         <div className="relative">
-          <SectionHeading
-            title={title || meta.title}
-            text={text || meta.text}
-            action={
-              <Link
-                href={moreHref || meta.moreHref}
-                className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-4 font-display text-sm text-white transition hover:bg-brand"
-              >
-                <Icon aria-hidden="true" size={15} />
-                See all
-              </Link>
-            }
-          />
+          <div className="px-3 sm:px-0">
+            <SectionHeading
+              eyebrow={eyebrow || meta.eyebrow}
+              title={title || meta.title}
+              text={text || meta.text}
+              action={
+                <Link
+                  href={moreHref || meta.moreHref}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-4 font-display text-sm text-white transition hover:bg-brand"
+                >
+                  <Icon aria-hidden="true" size={15} />
+                  See all
+                </Link>
+              }
+            />
+          </div>
+
           {mode === "marquee" ? (
             <ProductMarquee products={products} />
+          ) : mobileGrid ? (
+            <>
+              <div className="px-3 lg:hidden">
+                <ProductGrid products={mobileItems} layout="grid" hot={!!meta.hot} />
+                {products.length > mobileItems.length ? (
+                  <Link
+                    href={moreHref || meta.moreHref}
+                    className="mt-3 flex min-h-11 items-center justify-center rounded-xl border border-ink/10 bg-white text-sm font-semibold text-ink shadow-sm"
+                  >
+                    See all {products.length}+
+                  </Link>
+                ) : null}
+              </div>
+              <div className="hidden lg:block">
+                <ProductGrid
+                  products={products}
+                  layout="row"
+                  hot={!!meta.hot}
+                  itemClassName={useCompact ? COMPACT_ROW : undefined}
+                  dense={useCompact}
+                />
+              </div>
+            </>
           ) : (
-            <ProductGrid
-              products={products}
-              layout={mode === "row" ? "row" : "grid"}
-              hot={!!meta.hot}
-              itemClassName={useCompact ? COMPACT_ROW : undefined}
-              dense={useCompact}
-            />
+            <div className={mode === "row" ? "sm:px-0" : "px-3 sm:px-0"}>
+              <ProductGrid
+                products={products}
+                layout={mode === "row" ? "row" : "grid"}
+                hot={!!meta.hot}
+                itemClassName={useCompact ? COMPACT_ROW : undefined}
+                dense={useCompact}
+              />
+            </div>
           )}
         </div>
       </div>

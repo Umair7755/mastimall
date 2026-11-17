@@ -54,7 +54,7 @@ export function Footer({ departments = [], whatsapp = "" }) {
     <div className="mt-6">
       <TrustBar />
 
-      <footer className="relative overflow-hidden bg-brand-dark text-white">
+      <footer className="mobile-chrome-pad relative overflow-hidden bg-brand-dark text-white">
         <div className="pointer-events-none absolute -left-20 top-0 h-56 w-56 rounded-full bg-coral/20 blur-3xl" />
         <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-sun/20 blur-3xl" />
 
@@ -81,7 +81,7 @@ export function Footer({ departments = [], whatsapp = "" }) {
             <MastiLogo height={88} theme="dark" slogan="moods" orbit tagline={false} className="max-w-[16rem]" />
             <p className="mt-2 text-sm font-medium text-sun/90">Easy for kids. Fast for parents.</p>
             <p className="mt-3 max-w-xs text-white/85">
-              Toys + décor for Pakistani homes. Browse by age, room, or budget — then order in under a minute.
+              Toys + décor for Pakistani homes. Browse by age, type, or budget — then order in under a minute.
             </p>
             <ul className="mt-4 grid gap-1.5 text-sm text-white/90">
               <li>

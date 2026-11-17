@@ -151,6 +151,12 @@ export function OrderView({ orderNumber, order, error, placed }) {
                 placed ? "px-4 py-2.5" : "gap-2 px-5 py-4"
               )}
             >
+              {saved.payment?.discountAmount > 0 ? (
+                <p className="flex justify-between text-xs text-emerald-700">
+                  <span>Advance discount ({saved.payment.discountPercent || 0}%)</span>
+                  <span>−{formatPkr(saved.payment.discountAmount)}</span>
+                </p>
+              ) : null}
               <p className="flex justify-between text-xs text-ink-muted">
                 <span>Delivery</span>
                 <span>{saved.shipping?.fee ? formatPkr(saved.shipping.fee) : "Free"}</span>
@@ -159,14 +165,31 @@ export function OrderView({ orderNumber, order, error, placed }) {
                 <p className="flex justify-between text-xs text-ink-muted">
                   <span>Payment</span>
                   <span className="capitalize">
+                    {saved.payment.advancePlan && saved.payment.advancePlan !== "none"
+                      ? `Advance ${saved.payment.advancePlan}% · `
+                      : ""}
                     {saved.payment.method === "jazzcash"
                       ? "JazzCash"
                       : saved.payment.method === "easypaisa"
                         ? "EasyPaisa"
                         : saved.payment.method}
-                    {saved.payment.receipt?.url ? " · receipt attached" : ""}
+                    {saved.payment.receipt?.url ? " · receipt" : ""}
                   </span>
                 </p>
+              ) : null}
+              {saved.payment?.advanceAmount > 0 ? (
+                <>
+                  <p className="flex justify-between text-xs text-emerald-800">
+                    <span>Paid / due now</span>
+                    <span className="font-semibold">{formatPkr(saved.payment.advanceAmount)}</span>
+                  </p>
+                  {saved.payment.balanceAmount > 0 ? (
+                    <p className="flex justify-between text-xs text-ink-muted">
+                      <span>On delivery</span>
+                      <span>{formatPkr(saved.payment.balanceAmount)}</span>
+                    </p>
+                  ) : null}
+                </>
               ) : null}
               <p className="flex items-baseline justify-between">
                 <span className={cn("font-display font-semibold", placed ? "text-base" : "text-lg")}>Total</span>

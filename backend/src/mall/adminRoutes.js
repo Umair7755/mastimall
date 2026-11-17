@@ -152,6 +152,13 @@ function presentAdminOrder(order) {
     payment: {
       method: doc.payment?.method,
       status: doc.payment?.status,
+      advancePlan: doc.payment?.advancePlan || 'none',
+      discountPercent: doc.payment?.discountPercent || 0,
+      discountAmount: doc.payment?.discountAmount || doc.discountAmount || 0,
+      advancePercent: doc.payment?.advancePercent || 0,
+      advanceAmount: doc.payment?.advanceAmount || 0,
+      balanceAmount: doc.payment?.balanceAmount || 0,
+      advanceStatus: doc.payment?.advanceStatus || 'none',
       receipt: doc.payment?.receipt?.url
         ? {
             url: doc.payment.receipt.url,
@@ -162,7 +169,9 @@ function presentAdminOrder(order) {
         : null,
     },
     shipping: doc.shipping || { fee: 0 },
+    pricing: doc.pricing || null,
     subtotal: doc.subtotal,
+    discountAmount: doc.discountAmount || doc.payment?.discountAmount || 0,
     total: doc.total,
     fragile: !!doc.fragile,
     status: doc.status,
@@ -677,6 +686,8 @@ admin.get(
     const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
     const query = {};
     if (req.query.status) query.status = String(req.query.status);
+    if (req.query.advancePlan) query['payment.advancePlan'] = String(req.query.advancePlan);
+    if (req.query.advanceStatus) query['payment.advanceStatus'] = String(req.query.advanceStatus);
     if (req.query.q) {
       const pattern = new RegExp(escapeRegex(String(req.query.q).trim()), 'i');
       query.$or = [
@@ -690,24 +701,46 @@ admin.get(
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const [total, items, statusRows, todayOrders, todayRevenueAgg, allCount] = await Promise.all([
-      MallOrder.countDocuments(query),
-      MallOrder.find(query)
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit),
-      MallOrder.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
-      MallOrder.countDocuments({ createdAt: { $gte: todayStart } }),
-      MallOrder.aggregate([
-        { $match: { createdAt: { $gte: todayStart }, status: { $ne: 'cancelled' } } },
-        { $group: { _id: null, total: { $sum: '$total' } } },
-      ]),
-      MallOrder.countDocuments({}),
-    ]);
+    const [total, items, statusRows, todayOrders, todayRevenueAgg, allCount, advancePending, advanceRows] =
+      await Promise.all([
+        MallOrder.countDocuments(query),
+        MallOrder.find(query)
+          .sort({ createdAt: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit),
+        MallOrder.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+        MallOrder.countDocuments({ createdAt: { $gte: todayStart } }),
+        MallOrder.aggregate([
+          { $match: { createdAt: { $gte: todayStart }, status: { $ne: 'cancelled' } } },
+          { $group: { _id: null, total: { $sum: '$total' } } },
+        ]),
+        MallOrder.countDocuments({}),
+        MallOrder.countDocuments({ 'payment.advanceStatus': 'pending' }),
+        MallOrder.aggregate([
+          { $match: { 'payment.advancePlan': { $in: ['25', '50', '100'] } } },
+          {
+            $group: {
+              _id: '$payment.advancePlan',
+              count: { $sum: 1 },
+              advanceSum: { $sum: '$payment.advanceAmount' },
+              discountSum: { $sum: '$payment.discountAmount' },
+            },
+          },
+        ]),
+      ]);
 
     const byStatus = Object.fromEntries(ORDER_STATUSES.map((status) => [status, 0]));
     for (const row of statusRows) {
       if (row._id in byStatus) byStatus[row._id] = row.count;
+    }
+
+    const byAdvance = { none: 0, '25': 0, '50': 0, '100': 0 };
+    let advanceCollected = 0;
+    let discountGiven = 0;
+    for (const row of advanceRows) {
+      if (row._id in byAdvance) byAdvance[row._id] = row.count;
+      advanceCollected += row.advanceSum || 0;
+      discountGiven += row.discountSum || 0;
     }
 
     res.json({
@@ -720,6 +753,10 @@ admin.get(
         today: todayOrders,
         todaySales: todayRevenueAgg[0]?.total || 0,
         byStatus,
+        byAdvance,
+        advancePending,
+        advanceCollected,
+        discountGiven,
         new: byStatus.new || 0,
         confirmed: byStatus.confirmed || 0,
         packed: byStatus.packed || 0,
@@ -1045,6 +1082,20 @@ admin.patch(
     if (req.body.paymentStatus) {
       order.payment = order.payment || {};
       order.payment.status = req.body.paymentStatus;
+      if (req.body.paymentStatus === 'paid' && order.payment.advancePlan && order.payment.advancePlan !== 'none') {
+        order.payment.advanceStatus = 'verified';
+      }
+    }
+    if (req.body.advanceStatus) {
+      order.payment = order.payment || {};
+      order.payment.advanceStatus = req.body.advanceStatus;
+      if (req.body.advanceStatus === 'verified' && order.payment.advancePercent === 100) {
+        order.payment.status = 'paid';
+      } else if (req.body.advanceStatus === 'verified' && order.payment.advancePercent > 0) {
+        order.payment.status = 'partial';
+      } else if (req.body.advanceStatus === 'rejected') {
+        order.payment.status = 'pending';
+      }
     }
     if (req.body.trackingNumber != null || req.body.courier != null) {
       order.shipping = order.shipping || {};

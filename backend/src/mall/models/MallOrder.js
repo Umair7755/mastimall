@@ -19,7 +19,28 @@ const orderSchema = new Schema(
     customer: { name: String, phone: String, city: String, address: String, notes: String },
     payment: {
       method: { type: String, enum: ['cod', 'jazzcash', 'easypaisa', 'bank'], default: 'cod' },
-      status: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
+      status: {
+        type: String,
+        enum: ['pending', 'partial', 'paid', 'failed', 'refunded'],
+        default: 'pending',
+      },
+      advancePlan: {
+        type: String,
+        enum: ['none', '25', '50', '100'],
+        default: 'none',
+        index: true,
+      },
+      discountPercent: { type: Number, default: 0 },
+      discountAmount: { type: Number, default: 0 },
+      advancePercent: { type: Number, default: 0 },
+      advanceAmount: { type: Number, default: 0 },
+      balanceAmount: { type: Number, default: 0 },
+      advanceStatus: {
+        type: String,
+        enum: ['none', 'pending', 'verified', 'rejected'],
+        default: 'none',
+        index: true,
+      },
       receipt: {
         url: String,
         fileName: String,
@@ -33,7 +54,16 @@ const orderSchema = new Schema(
       trackingNumber: String,
       fee: { type: Number, default: 0 },
     },
+    pricing: {
+      subtotal: Number,
+      discountAmount: Number,
+      shippingFee: Number,
+      total: Number,
+      advanceAmount: Number,
+      balanceAmount: Number,
+    },
     subtotal: Number,
+    discountAmount: { type: Number, default: 0 },
     total: Number,
     fragile: { type: Boolean, default: false },
     status: {

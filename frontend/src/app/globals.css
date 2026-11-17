@@ -34,14 +34,25 @@
 }
 
 :root {
-  /* Mobile bottom chrome — MobileNav (h-16) + gap + safe area */
+  /* Mobile bottom chrome — MobileNav dock + gap + safe area */
   --mobile-nav-h: 4rem;
   --mobile-chrome-gap: 0.75rem;
   --mobile-chrome-bottom: calc(
     var(--mobile-nav-h) + var(--mobile-chrome-gap) + env(safe-area-inset-bottom, 0px)
   );
-  /* Sticky PDP buy bar height reserve above chrome */
-  --mobile-buybar-h: 4.25rem;
+  /* Sticky PDP buy bar height reserve above chrome (BuyBox sets this when mounted) */
+  --mobile-buybar-h: 0px;
+}
+
+/* Lift chat FAB above the sticky buy bar on product pages */
+html[data-buybar="1"] .help-chat-dock {
+  bottom: calc(var(--mobile-chrome-bottom) + var(--mobile-buybar-h) + 0.5rem) !important;
+}
+
+@media (min-width: 1024px) {
+  html[data-buybar="1"] .help-chat-dock {
+    bottom: 2rem !important;
+  }
 }
 
 body {
@@ -259,6 +270,28 @@ summary::-webkit-details-marker {
   outline-offset: 3px;
 }
 
+/* Inputs / selects: square outline clashes with pill fields — use parent rings instead */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+button,
+[type="button"],
+[type="submit"],
+[type="reset"],
+[role="button"] {
+  cursor: pointer;
+}
+
+button:disabled,
+[type="button"]:disabled,
+[type="submit"]:disabled,
+[type="reset"]:disabled {
+  cursor: not-allowed;
+}
+
 ::selection {
   background: #fbbf24;
   color: #0f172a;
@@ -293,6 +326,51 @@ summary::-webkit-details-marker {
 
 .sale-banner__tick--pulse {
   animation: sale-tick-pulse 0.45s ease;
+}
+
+/* Mobile title: scroll full text instead of truncating */
+.sale-banner__marquee {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.sale-banner__marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 1.75rem;
+  animation: sale-title-marquee 9s linear infinite;
+}
+
+.sale-banner__marquee-item {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@keyframes sale-title-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-50% - 0.875rem));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sale-banner__marquee-track {
+    animation: none;
+  }
+  .sale-banner__marquee-item:last-child {
+    display: none;
+  }
+  .sale-banner__marquee {
+    mask-image: none;
+  }
+  .sale-banner__marquee-item {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 @keyframes sale-shimmer {
@@ -355,7 +433,7 @@ summary::-webkit-details-marker {
 }
 
 .sale-banner-skeleton {
-  min-height: 4.25rem;
+  min-height: 2.5rem;
   background:
     radial-gradient(ellipse 50% 120% at 12% 50%, rgb(251 191 36 / 0.35), transparent 55%),
     radial-gradient(ellipse 40% 100% at 88% 40%, rgb(251 113 133 / 0.42), transparent 50%),

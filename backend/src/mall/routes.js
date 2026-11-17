@@ -18,7 +18,9 @@ import { pingRevalidate } from './lib/revalidate.js';
 import { readStoreRevisions } from './lib/catalogRevision.js';
 import { isPkMobile, normalizePhone } from './lib/phone.js';
 import { shippingFee } from './lib/shipping.js';
+import { computeAdvancePricing, listAdvanceQuotes, normalizeAdvancePlan } from './lib/advancePricing.js';
 import { AGE_BANDS, AUDIENCES, RESERVED_SLUGS, SORTS, paymentAccounts } from './constants.js';
+import { resolvePriceFilter } from './lib/budgets.js';
 import { savePaymentReceipt } from './lib/receipt.js';
 import {
   loginSchema,
@@ -431,12 +433,11 @@ mall.get(
     if (req.query.featured === '1') query.isFeatured = true;
     if (req.query.isNew === '1') query.newlyAdded = true;
 
-    const minPrice = Number(req.query.minPrice);
-    const maxPrice = Number(req.query.maxPrice);
-    if ((Number.isFinite(minPrice) && minPrice > 0) || (Number.isFinite(maxPrice) && maxPrice > 0)) {
+    const { minPrice, maxPrice } = resolvePriceFilter(req.query);
+    if (minPrice != null || maxPrice != null) {
       query.effectivePrice = {};
-      if (Number.isFinite(minPrice) && minPrice > 0) query.effectivePrice.$gte = minPrice;
-      if (Number.isFinite(maxPrice) && maxPrice > 0) query.effectivePrice.$lte = maxPrice;
+      if (minPrice != null) query.effectivePrice.$gte = minPrice;
+      if (maxPrice != null) query.effectivePrice.$lte = maxPrice;
     }
 
     const sortKey = SORTS[req.query.sort] ? req.query.sort : 'popular';
@@ -793,7 +794,30 @@ mall.post(
 
     const subtotal = lines.reduce((sum, line) => sum + line.lineTotal, 0);
     const fee = shippingFee(subtotal, req.body.city || 'Other');
-    res.json({ lines, subtotal, fee, total: subtotal + fee, problems, freeShippingAt: 3000 });
+    const advancePlan = normalizeAdvancePlan(req.body.advancePlan);
+    const pricing = computeAdvancePricing({
+      subtotal,
+      shippingFee: fee,
+      advancePlan,
+    });
+    const plans = listAdvanceQuotes({ subtotal, shippingFee: fee });
+    res.json({
+      lines,
+      subtotal,
+      fee,
+      total: pricing.total,
+      discountAmount: pricing.discountAmount,
+      advancePlan: pricing.planId,
+      advanceAmount: pricing.advanceAmount,
+      balanceAmount: pricing.balanceAmount,
+      discountPercent: pricing.discountPercent,
+      advancePercent: pricing.advancePercent,
+      requiresReceipt: pricing.requiresReceipt,
+      pricing,
+      plans,
+      problems,
+      freeShippingAt: 3000,
+    });
   })
 );
 
@@ -853,12 +877,24 @@ mall.post(
 
     const subtotal = lines.reduce((sum, line) => sum + line.unitPrice * line.qty, 0);
     const fee = shippingFee(subtotal, req.body.customer.city);
+    const advancePlan = normalizeAdvancePlan(req.body.advancePlan);
+    const pricing = computeAdvancePricing({
+      subtotal,
+      shippingFee: fee,
+      advancePlan,
+    });
+    if (pricing.requiresReceipt && req.body.paymentMethod === 'cod') {
+      throw new HttpError(400, 'Choose JazzCash or EasyPaisa to send your advance payment.');
+    }
     const orderNumber = await nextOrderNumber();
     const fragile = lines.some((line) => line.product.fragile);
 
     let order;
     try {
-      const needsReceipt = req.body.paymentMethod === 'jazzcash' || req.body.paymentMethod === 'easypaisa';
+      const needsReceipt =
+        pricing.requiresReceipt ||
+        req.body.paymentMethod === 'jazzcash' ||
+        req.body.paymentMethod === 'easypaisa';
       const receipt = needsReceipt
         ? await savePaymentReceipt(req.body.paymentReceipt, orderNumber)
         : undefined;
@@ -876,12 +912,28 @@ mall.post(
         customer: { ...req.body.customer, phone },
         payment: {
           method: req.body.paymentMethod,
-          status: 'pending',
+          status: pricing.advancePercent === 100 ? 'pending' : pricing.advancePercent > 0 ? 'partial' : 'pending',
+          advancePlan: pricing.planId,
+          discountPercent: pricing.discountPercent,
+          discountAmount: pricing.discountAmount,
+          advancePercent: pricing.advancePercent,
+          advanceAmount: pricing.advanceAmount,
+          balanceAmount: pricing.balanceAmount,
+          advanceStatus: pricing.requiresReceipt ? 'pending' : 'none',
           ...(receipt ? { receipt } : {}),
         },
         shipping: { fee, courier: '' },
+        pricing: {
+          subtotal: pricing.subtotal,
+          discountAmount: pricing.discountAmount,
+          shippingFee: pricing.shippingFee,
+          total: pricing.total,
+          advanceAmount: pricing.advanceAmount,
+          balanceAmount: pricing.balanceAmount,
+        },
         subtotal,
-        total: subtotal + fee,
+        discountAmount: pricing.discountAmount,
+        total: pricing.total,
         fragile,
         status: 'new',
         source: req.body.source,

@@ -55,7 +55,7 @@ async function ProductContent({ params }) {
   return (
     <div
       data-department={product.department?.themeKey}
-      className="mx-auto w-full max-w-[1920px] px-2 py-6 pb-[calc(var(--mobile-chrome-bottom)+var(--mobile-buybar-h)+1rem)] sm:px-3 lg:px-4 xl:px-5 lg:pb-8"
+      className="mx-auto w-full max-w-[1920px] px-2 py-6 pb-[calc(var(--mobile-chrome-bottom)+var(--mobile-buybar-h)+1.5rem)] sm:px-3 lg:px-4 xl:px-5 lg:pb-8"
     >
       <Breadcrumbs
         items={[

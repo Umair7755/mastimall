@@ -23,6 +23,8 @@ export const profileUpdateSchema = z.object({
   phone: z.string().trim().min(10).max(20),
 });
 
+const ADVANCE_PLANS = z.enum(['none', '25', '50', '100']);
+
 export const quoteSchema = z.object({
   items: z
     .array(
@@ -34,6 +36,7 @@ export const quoteSchema = z.object({
     .min(1)
     .max(30),
   city: z.string().trim().min(2).max(80).optional().default('Other'),
+  advancePlan: ADVANCE_PLANS.optional().default('none'),
 });
 
 export const orderSchema = z.object({
@@ -55,14 +58,25 @@ export const orderSchema = z.object({
   }),
   paymentMethod: z.enum(CHECKOUT_PAYMENT_METHODS),
   paymentReceipt: z.string().max(4_000_000).optional().default(''),
+  advancePlan: ADVANCE_PLANS.optional().default('none'),
   source: z.enum(['web', 'wishlist-whatsapp']).default('web'),
 }).superRefine((data, ctx) => {
-  if (data.paymentMethod === 'cod') return;
+  const advance = data.advancePlan && data.advancePlan !== 'none';
+  if (advance && data.paymentMethod === 'cod') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['paymentMethod'],
+      message: 'Choose JazzCash or EasyPaisa to send your advance payment.',
+    });
+  }
+  if (data.paymentMethod === 'cod' && !advance) return;
   if (!data.paymentReceipt || data.paymentReceipt.length < 32) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['paymentReceipt'],
-      message: 'Please attach your JazzCash or EasyPaisa payment receipt.',
+      message: advance
+        ? 'Please attach your advance payment receipt (JazzCash or EasyPaisa).'
+        : 'Please attach your JazzCash or EasyPaisa payment receipt.',
     });
   }
 });
@@ -147,7 +161,8 @@ export const saleBannerSchema = z.object({
 export const orderStatusSchema = z
   .object({
     status: z.enum(ORDER_STATUSES).optional(),
-    paymentStatus: z.enum(['pending', 'paid', 'failed', 'refunded']).optional(),
+    paymentStatus: z.enum(['pending', 'partial', 'paid', 'failed', 'refunded']).optional(),
+    advanceStatus: z.enum(['none', 'pending', 'verified', 'rejected']).optional(),
     trackingNumber: z.string().trim().max(80).optional(),
     courier: z.string().trim().max(80).optional(),
   })
@@ -155,6 +170,7 @@ export const orderStatusSchema = z
     (value) =>
       value.status != null ||
       value.paymentStatus != null ||
+      value.advanceStatus != null ||
       value.trackingNumber != null ||
       value.courier != null,
     { message: 'Provide at least one field to update.' }

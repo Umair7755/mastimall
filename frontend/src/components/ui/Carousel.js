@@ -68,20 +68,21 @@ export function Carousel({
     };
   }, [autoPlay, children, intervalMs]);
 
-  // Same chrome as Mall picks; sit in a slim side gutter (not on cards, not far out).
+  // Desktop arrows only — mobile is swipe-first and edge-to-edge.
   const arrowClass =
-    "absolute top-[38%] z-20 grid -translate-y-1/2 place-items-center rounded-full " +
+    "absolute top-[38%] z-20 hidden -translate-y-1/2 place-items-center rounded-full sm:grid " +
     "border-2 border-white bg-ink text-sun " +
     "shadow-[0_6px_16px_-6px_rgb(15_23_42_/_0.5)] ring-1 ring-ink/10 " +
     "transition active:scale-95 hover:bg-brand hover:text-white " +
     "h-8 w-8 sm:h-10 sm:w-10 lg:h-11 lg:w-11";
 
   return (
-    <div className={cn("relative px-4 sm:px-5", className)}>
+    <div className={cn("relative px-0 sm:px-5", className)}>
       <div
         ref={scroller}
         className={cn(
           "no-scrollbar flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth pb-1",
+          "px-3 sm:px-0",
           gapClassName || "gap-3 sm:gap-4"
         )}
         style={{ overflowAnchor: "none", WebkitOverflowScrolling: "touch" }}

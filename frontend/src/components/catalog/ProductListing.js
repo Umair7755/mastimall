@@ -106,6 +106,9 @@ export function ProductListing({
   const pages = result?.pages || 0;
   const facets = result?.facets || null;
   const activeFilters = filters?.length ? filters : DEFAULT_FILTERS;
+  const department = one(searchParams.department);
+  const noun = department === "decor" ? "item" : department === "toys" ? "toy" : "item";
+  const nounPlural = department === "decor" ? "items" : department === "toys" ? "toys" : "items";
 
   return (
     <div className="mx-auto w-full max-w-[1920px] px-2 py-6 sm:px-3 lg:px-4 xl:px-5">
@@ -156,7 +159,9 @@ export function ProductListing({
         <div>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-ink-muted">
-              {problem ? "—" : `${result?.total ?? 0} toy${result?.total === 1 ? "" : "s"}`}
+              {problem
+                ? "—"
+                : `${result?.total ?? 0} ${result?.total === 1 ? noun : nounPlural}`}
             </p>
             <SortBar pathname={pathname} searchParams={searchParams} />
           </div>
@@ -189,7 +194,7 @@ export function ProductListing({
           ) : null}
           {!problem && !items.length ? (
             <div className="rounded-2xl border border-dashed border-line bg-white/70 p-8">
-              <p className="font-display text-2xl">No toys match those filters.</p>
+              <p className="font-display text-2xl">No {nounPlural} match those filters.</p>
               <p className="mt-2 text-ink-muted">Try clearing a filter, or pick another category.</p>
               <Link
                 href={pathname}

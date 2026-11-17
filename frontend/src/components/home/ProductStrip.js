@@ -4,8 +4,6 @@ import { getProducts } from "@/lib/data";
 import { ProductMarquee } from "@/components/home/ProductMarquee";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { CONTAINER } from "@/lib/layout";
-
 function stripMeta(section) {
   const config = section.config || {};
   if (config.all || config.catalog) {
@@ -74,42 +72,46 @@ export async function ProductStrip({ section }) {
   const Icon = meta.icon;
 
   return (
-    <section className={`${CONTAINER} py-2.5 lg:py-4`}>
+    <section className="w-full py-2 lg:py-4 sm:mx-auto sm:max-w-[1920px] sm:px-3 lg:px-4 xl:px-5">
       <div
-        className={`relative overflow-hidden rounded-[1.5rem] ${meta.shell} p-3 sm:p-4 lg:p-5 ${
-          meta.marquee ? "ring-1 ring-black/5 shadow-soft" : ""
+        className={`relative overflow-hidden rounded-none sm:rounded-[1.5rem] ${meta.shell} px-0 py-3 sm:p-4 lg:p-5 ${
+          meta.marquee ? "ring-0 sm:ring-1 sm:ring-black/5 shadow-none sm:shadow-soft" : ""
         }`}
       >
         {meta.marquee ? (
           <>
             <div
-              className="pointer-events-none absolute -left-10 top-0 h-28 w-28 rounded-full bg-sun/30 blur-3xl"
+              className="pointer-events-none absolute -left-10 top-0 hidden h-28 w-28 rounded-full bg-sun/30 blur-3xl sm:block"
               aria-hidden="true"
             />
             <div
-              className="pointer-events-none absolute -right-8 bottom-0 h-32 w-32 rounded-full bg-brand/20 blur-3xl"
+              className="pointer-events-none absolute -right-8 bottom-0 hidden h-32 w-32 rounded-full bg-brand/20 blur-3xl sm:block"
               aria-hidden="true"
             />
           </>
         ) : null}
         <div className="relative">
-          <SectionHeading
-            title={meta.title}
-            text={meta.text}
-            action={
-              <Link
-                href={meta.moreHref}
-                className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-4 font-display text-sm text-white"
-              >
-                <Icon aria-hidden="true" size={15} />
-                See all
-              </Link>
-            }
-          />
+          <div className="px-3 sm:px-0">
+            <SectionHeading
+              title={meta.title}
+              text={meta.text}
+              action={
+                <Link
+                  href={meta.moreHref}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-4 font-display text-sm text-white"
+                >
+                  <Icon aria-hidden="true" size={15} />
+                  See all
+                </Link>
+              }
+            />
+          </div>
           {meta.marquee ? (
             <ProductMarquee products={items} />
           ) : (
-            <ProductGrid products={items} layout={config.layout === "row" ? "row" : "grid"} hot={meta.hot} />
+            <div className={config.layout === "row" ? "" : "px-3 sm:px-0"}>
+              <ProductGrid products={items} layout={config.layout === "row" ? "row" : "grid"} hot={meta.hot} />
+            </div>
           )}
         </div>
       </div>

@@ -7,6 +7,7 @@ import { buildDepartmentFinderGroups } from "@/lib/finderGroups";
 export function FindToysRail({ budgetLimits }) {
   return (
     <FindMallRail
+      variant="home"
       id="find"
       groups={buildDepartmentFinderGroups("toys", { budgetLimits })}
       mobileLabel="Find toys · tap a chip"

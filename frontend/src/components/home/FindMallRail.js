@@ -126,9 +126,14 @@ function HomeFinderBoard({ id, groups, title, subtitle, seeAllHref, shell, reduc
   const activeGroup = tabs.find((tab) => tab.key === active) || tabs[0];
   const byKey = Object.fromEntries(groups.map((g) => [g.key, g]));
   const rowToys = [byKey.who, byKey.age].filter(Boolean);
-  const rowHome = [byKey.room, byKey.budget].filter(Boolean);
-  const leftover = groups.filter((g) => !["who", "age", "room", "budget"].includes(g.key));
-  if (leftover.length) rowHome.push(...leftover);
+  const rowHome = [byKey.type].filter(Boolean);
+  // Budget sits with Decor when Type exists (mall home); otherwise with Toys.
+  if (byKey.budget) {
+    if (byKey.type || !rowToys.length) rowHome.push(byKey.budget);
+    else rowToys.push(byKey.budget);
+  }
+  const leftover = groups.filter((g) => !["who", "age", "type", "budget"].includes(g.key));
+  if (leftover.length) (rowHome.length ? rowHome : rowToys).push(...leftover);
 
   return (
     <section id={id} className={`${CONTAINER} max-w-full scroll-mt-28 overflow-x-hidden py-1.5 lg:py-2`}>
@@ -167,7 +172,12 @@ function HomeFinderBoard({ id, groups, title, subtitle, seeAllHref, shell, reduc
 
         {/* Mobile: tab pills + wrap chips (no cut-off scroller) */}
         <div className="relative lg:hidden">
-          <div className="grid grid-cols-4 gap-1.5">
+          <div
+            className={cn(
+              "grid gap-1.5",
+              tabs.length <= 2 ? "grid-cols-2" : tabs.length === 3 ? "grid-cols-3" : "grid-cols-4"
+            )}
+          >
             {tabs.map((tab) => {
               const Icon = tab.Icon;
               const on = tab.key === activeGroup?.key;
@@ -220,8 +230,20 @@ function HomeFinderBoard({ id, groups, title, subtitle, seeAllHref, shell, reduc
         {/* Desktop: two short rows */}
         <div className="relative hidden gap-2 lg:grid">
           {[
-            { key: "toys", eyebrow: "Toys", caption: "Who & age", groups: rowToys, tint: "from-[#eef2ff]/80 to-transparent" },
-            { key: "home", eyebrow: "Decor", caption: "Room & budget", groups: rowHome, tint: "from-[#ecfdf5]/90 to-transparent" },
+            {
+              key: "toys",
+              eyebrow: "Toys",
+              caption: byKey.budget && !byKey.type ? "Who, age & budget" : "Who & age",
+              groups: rowToys,
+              tint: "from-[#eef2ff]/80 to-transparent",
+            },
+            {
+              key: "home",
+              eyebrow: "Decor",
+              caption: byKey.type && byKey.budget ? "Type & budget" : byKey.type ? "Type" : "Budget",
+              groups: rowHome,
+              tint: "from-[#ecfdf5]/90 to-transparent",
+            },
           ]
             .filter((row) => row.groups.length)
             .map((row) => (

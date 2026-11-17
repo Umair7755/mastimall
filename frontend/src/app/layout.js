@@ -35,6 +35,14 @@ export const metadata = {
   },
 };
 
+/** Keep the page usable when the mobile keyboard opens (chat / search). */
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+};
+
 async function StorefrontChrome({ children }) {
   const pathname = (await headers()).get("x-pathname") || "";
   if (pathname.startsWith("/admin")) {
@@ -87,7 +95,9 @@ async function StorefrontChrome({ children }) {
       <Footer departments={departments} whatsapp={home.whatsapp} />
       <MobileNav />
       <CartDrawer shopHref={shopHref} />
-      <ShopSheet departments={departments} />
+      <Suspense fallback={null}>
+        <ShopSheet departments={departments} />
+      </Suspense>
       <HelpChat />
       <LiveStoreRefresh />
       <StoreAnalytics />

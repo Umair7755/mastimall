@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Banknote, Check, Copy, ImagePlus, X } from "lucide-react";
+import { Banknote, Check, Copy, ImagePlus, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, TextArea } from "@/components/ui/Input";
 import { useCheckoutSettings } from "@/hooks/useCheckoutSettings";
 import { useQuote } from "@/hooks/useQuote";
 import { signalBlacklisted } from "@/components/access/AccessGate";
 import { apiFetch, isBlacklistedError } from "@/lib/browser";
+import { ADVANCE_PLANS, advancePlanMeta } from "@/lib/advancePlans";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { readDraft, writeDraft } from "@/lib/draft";
 import { formatPkr } from "@/lib/format";
@@ -24,6 +25,7 @@ const MAX_RECEIPT_BYTES = 2.5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const WALLET_METHODS = new Set(["jazzcash", "easypaisa"]);
 const ALLOWED_PAYMENTS = new Set(["cod", "jazzcash", "easypaisa"]);
+const ALLOWED_ADVANCE = new Set(["none", "25", "50", "100"]);
 
 const schema = z.object({
   name: z.string().trim().min(2, "Please enter the name for the parcel."),
@@ -32,6 +34,7 @@ const schema = z.object({
   address: z.string().trim().min(6, "Add the house number, street and area."),
   notes: z.string().trim().max(300).optional(),
   paymentMethod: z.enum(["cod", "jazzcash", "easypaisa"]),
+  advancePlan: z.enum(["none", "25", "50", "100"]),
   acceptTerms: z.boolean().refine((value) => value === true, {
     message: "Please accept the Terms of Service to place your order.",
   }),
@@ -91,7 +94,7 @@ function CopyChip({ value }) {
     <button
       type="button"
       onClick={copy}
-      className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-ink shadow-sm ring-1 ring-black/5"
+      className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-ink shadow-sm ring-1 ring-black/5"
     >
       {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
       {copied ? "Copied" : "Copy"}
@@ -132,6 +135,7 @@ export function CheckoutForm() {
       address: "",
       notes: "",
       paymentMethod: "cod",
+      advancePlan: "none",
       acceptTerms: false,
     },
   });
@@ -139,11 +143,27 @@ export function CheckoutForm() {
   const { register, setValue, watch, handleSubmit, reset, formState } = form;
   const city = watch("city");
   const paymentMethod = watch("paymentMethod") || "cod";
+  const advancePlan = watch("advancePlan") || "none";
   const acceptTerms = watch("acceptTerms");
-  const needsReceipt = WALLET_METHODS.has(paymentMethod);
-  const { quote, loading, error } = useQuote(items, city || "Other");
+  const wantsAdvance = advancePlan !== "none";
+  const needsReceipt = wantsAdvance || WALLET_METHODS.has(paymentMethod);
+  const { quote, loading, error } = useQuote(items, city || "Other", advancePlan);
 
   const selectedMethod = paymentMethods.find((method) => method.id === paymentMethod) || null;
+  const planCards = quote?.plans?.length
+    ? quote.plans
+    : ADVANCE_PLANS.map((plan) => ({
+        ...plan,
+        planId: plan.id,
+        discountAmount: 0,
+        total: quote?.total || 0,
+        advanceAmount: 0,
+        balanceAmount: quote?.total || 0,
+      }));
+
+  const payNow = quote?.advanceAmount ?? 0;
+  const balanceDue = quote?.balanceAmount ?? quote?.total ?? 0;
+  const discountAmount = quote?.discountAmount ?? 0;
 
   useEffect(() => {
     const draft = readDraft();
@@ -154,6 +174,7 @@ export function CheckoutForm() {
       address: draft.address || "",
       notes: draft.notes || "",
       paymentMethod: ALLOWED_PAYMENTS.has(draft.paymentMethod) ? draft.paymentMethod : "cod",
+      advancePlan: ALLOWED_ADVANCE.has(draft.advancePlan) ? draft.advancePlan : "none",
       acceptTerms: false,
     });
     setReady(true);
@@ -175,9 +196,24 @@ export function CheckoutForm() {
     if (!needsReceipt) setReceiptError("");
   }, [needsReceipt]);
 
+  useEffect(() => {
+    if (wantsAdvance && paymentMethod === "cod") {
+      setValue("paymentMethod", "jazzcash", { shouldDirty: true, shouldValidate: true });
+    }
+  }, [wantsAdvance, paymentMethod, setValue]);
+
   function selectPayment(methodId) {
     if (!ALLOWED_PAYMENTS.has(methodId)) return;
+    if (wantsAdvance && methodId === "cod") return;
     setValue("paymentMethod", methodId, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+  }
+
+  function selectAdvance(planId) {
+    if (!ALLOWED_ADVANCE.has(planId)) return;
+    setValue("advancePlan", planId, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+    if (planId !== "none" && paymentMethod === "cod") {
+      setValue("paymentMethod", "jazzcash", { shouldDirty: true, shouldValidate: true });
+    }
   }
 
   async function onReceiptChange(event) {
@@ -226,8 +262,17 @@ export function CheckoutForm() {
   async function onSubmit(values) {
     setServerError("");
     setReceiptError("");
-    if (WALLET_METHODS.has(values.paymentMethod) && !receiptDataUrl) {
-      setReceiptError("Please attach your JazzCash or EasyPaisa payment receipt.");
+    const advance = values.advancePlan !== "none";
+    if ((advance || WALLET_METHODS.has(values.paymentMethod)) && !receiptDataUrl) {
+      setReceiptError(
+        advance
+          ? "Please attach your advance payment receipt (JazzCash or EasyPaisa)."
+          : "Please attach your JazzCash or EasyPaisa payment receipt."
+      );
+      return;
+    }
+    if (advance && values.paymentMethod === "cod") {
+      setServerError("Choose JazzCash or EasyPaisa to send your advance payment.");
       return;
     }
 
@@ -246,7 +291,8 @@ export function CheckoutForm() {
             notes: values.notes || "",
           },
           paymentMethod: values.paymentMethod,
-          paymentReceipt: WALLET_METHODS.has(values.paymentMethod) ? receiptDataUrl : "",
+          advancePlan: values.advancePlan,
+          paymentReceipt: advance || WALLET_METHODS.has(values.paymentMethod) ? receiptDataUrl : "",
           source: "web",
         }),
       });
@@ -267,14 +313,22 @@ export function CheckoutForm() {
     }
   }
 
-  const blocked = Boolean(quote?.problems?.length) || loading || formState.isSubmitting || !acceptTerms;
+  const missingReceipt = needsReceipt && !receiptDataUrl;
+  const blocked =
+    Boolean(quote?.problems?.length) ||
+    loading ||
+    formState.isSubmitting ||
+    !acceptTerms ||
+    missingReceipt;
+  const walletMethodsOnly = paymentMethods.filter((method) => WALLET_METHODS.has(method.id));
+  const visiblePaymentMethods = wantsAdvance ? walletMethodsOnly : paymentMethods;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-5 pb-[calc(var(--mobile-chrome-bottom)+5rem)] lg:py-7 lg:pb-10">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="font-display text-[28px] font-semibold tracking-tight lg:text-[34px]">Checkout</h1>
-          <p className="mt-0.5 text-sm text-ink-muted">Delivery + payment in one short step.</p>
+          <p className="mt-0.5 text-sm text-ink-muted">Pay some now &amp; save — or pay the rider later.</p>
         </div>
         {quote ? (
           <p className="rounded-full bg-brand-soft px-3 py-1 text-sm font-semibold text-brand">
@@ -284,45 +338,123 @@ export function CheckoutForm() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
-        <div className="min-w-0 rounded-2xl border border-line/70 bg-white p-3.5 shadow-soft sm:p-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field compact label="Name" error={formState.errors.name?.message}>
-              <Input className="h-11" autoComplete="name" {...register("name")} />
-            </Field>
-            <Field compact label="Phone" hint="03XX-XXXXXXX" error={formState.errors.phone?.message}>
-              <Input className="h-11" inputMode="tel" autoComplete="tel" {...register("phone")} />
-            </Field>
-            <Field compact label="City" error={formState.errors.city?.message}>
-              <Input className="h-11" list={citiesId} autoComplete="address-level2" {...register("city")} />
-            </Field>
-            <Field compact label="Landmark" hint="Optional">
-              <Input className="h-11" {...register("notes")} />
-            </Field>
-          </div>
-          <datalist id={citiesId}>
-            {cities.map((item) => (
-              <option key={item} value={item} />
-            ))}
-          </datalist>
-          <div className="mt-3">
-            <Field compact label="Address" error={formState.errors.address?.message}>
-              <TextArea className="min-h-[3.75rem]" rows={2} autoComplete="street-address" {...register("address")} />
-            </Field>
+        <div className="min-w-0 space-y-4">
+          <div className="rounded-2xl border border-line/70 bg-white p-3.5 shadow-soft sm:p-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field compact label="Name" error={formState.errors.name?.message}>
+                <Input className="h-11" autoComplete="name" {...register("name")} />
+              </Field>
+              <Field compact label="Phone" hint="03XX-XXXXXXX" error={formState.errors.phone?.message}>
+                <Input className="h-11" inputMode="tel" autoComplete="tel" {...register("phone")} />
+              </Field>
+              <Field compact label="City" error={formState.errors.city?.message}>
+                <Input className="h-11" list={citiesId} autoComplete="address-level2" {...register("city")} />
+              </Field>
+              <Field compact label="Landmark" hint="Optional">
+                <Input className="h-11" {...register("notes")} />
+              </Field>
+            </div>
+            <datalist id={citiesId}>
+              {cities.map((item) => (
+                <option key={item} value={item} />
+              ))}
+            </datalist>
+            <div className="mt-3">
+              <Field compact label="Address" error={formState.errors.address?.message}>
+                <TextArea className="min-h-[3.75rem]" rows={2} autoComplete="street-address" {...register("address")} />
+              </Field>
+            </div>
           </div>
 
-          <div className="mt-4 border-t border-line/60 pt-3.5">
-            <div className="mb-2.5 flex items-center justify-between gap-2">
-              <h2 className="font-display text-sm font-semibold">Payment method</h2>
-              <p className="text-[11px] text-ink-muted">Tap one to select</p>
+          <div className="rounded-2xl border border-[#f59e0b]/35 bg-gradient-to-br from-[#fff7ed] via-white to-[#ecfdf5] p-3.5 shadow-soft sm:p-4">
+            <div className="mb-3 flex items-start gap-2">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink text-sun">
+                <Sparkles size={16} aria-hidden="true" />
+              </span>
+              <div>
+                <h2 className="font-display text-base font-semibold text-ink">Pay some now &amp; save</h2>
+                <p className="text-xs text-ink-muted sm:text-sm">
+                  25% advance helps cover delivery (~Rs 350). Bigger advance = bigger discount on products.
+                </p>
+              </div>
             </div>
 
-            {/* Controlled segment — avoids broken radio/label nesting crashes */}
             <div
               role="radiogroup"
-              aria-label="Payment method"
-              className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+              aria-label="Advance payment plan"
+              className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4"
             >
-              {paymentMethods.map((method) => {
+              {planCards.map((plan) => {
+                const id = plan.planId || plan.id;
+                const meta = advancePlanMeta(id);
+                const selected = advancePlan === id;
+                const save = plan.discountAmount || 0;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => selectAdvance(id)}
+                    className={cn(
+                      "flex cursor-pointer flex-col gap-2 rounded-2xl border-2 px-3 py-2.5 text-left transition lg:min-h-0",
+                      selected
+                        ? "border-emerald-600 bg-white ring-2 ring-emerald-100"
+                        : "border-line/70 bg-white/80 hover:border-emerald-300"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-display text-[13px] font-bold leading-tight text-ink lg:text-sm">
+                        {meta.label}
+                      </p>
+                      {meta.discountPercent > 0 ? (
+                        <span className="shrink-0 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                          −{meta.discountPercent}%
+                        </span>
+                      ) : (
+                        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                          COD
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-0.5 flex items-center justify-between gap-2">
+                      {save > 0 ? (
+                        <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold tracking-tight text-emerald-700 ring-1 ring-inset ring-emerald-200/80">
+                          Save {formatPkr(save)}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-medium text-ink-muted">—</span>
+                      )}
+                      <span className="min-w-0 truncate text-right text-[10px] text-ink-muted">
+                        Pay{" "}
+                        <span className="font-display font-bold tabular-nums text-ink">
+                          {formatPkr(plan.advanceAmount || 0)}
+                        </span>
+                      </span>
+                    </div>
+
+                    <p className="text-[10px] leading-snug text-ink-muted lg:hidden">
+                      {meta.blurb}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-line/70 bg-white p-3.5 shadow-soft sm:p-4">
+            <div className="mb-2.5 flex items-center justify-between gap-2">
+              <h2 className="font-display text-sm font-semibold">
+                {wantsAdvance ? "Send advance via" : "Payment method"}
+              </h2>
+              <p className="text-[11px] text-ink-muted">
+                {wantsAdvance ? "Receipt required" : "Tap one to select"}
+              </p>
+            </div>
+
+            <div role="radiogroup" aria-label="Payment method" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {visiblePaymentMethods.map((method) => {
                 const selected = paymentMethod === method.id;
                 const accent =
                   method.accent ||
@@ -335,7 +467,7 @@ export function CheckoutForm() {
                     aria-checked={selected}
                     onClick={() => selectPayment(method.id)}
                     className={cn(
-                      "flex min-w-0 items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left transition",
+                      "flex min-w-0 cursor-pointer items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left transition",
                       selected ? "bg-white shadow-sm" : "border-line/80 bg-[#faf8f4] hover:bg-white"
                     )}
                     style={{ borderColor: selected ? accent : undefined }}
@@ -364,12 +496,12 @@ export function CheckoutForm() {
               })}
             </div>
 
-            {needsReceipt && selectedMethod ? (
+            {needsReceipt && selectedMethod && WALLET_METHODS.has(selectedMethod.id) ? (
               <div className="mt-3 rounded-xl border border-dashed border-ink/15 bg-[#faf8f4] p-3">
                 <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
                   <div className="min-w-0">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted">
-                      Send {selectedMethod.label} payment to
+                      Send {selectedMethod.label} {wantsAdvance ? "advance" : "payment"} to
                     </p>
                     <p className="mt-0.5 text-xs text-ink-muted">{selectedMethod.accountName || "Masti Mall"}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -379,8 +511,16 @@ export function CheckoutForm() {
                       {selectedMethod.accountNumber ? <CopyChip value={selectedMethod.accountNumber} /> : null}
                     </div>
                     <p className="mt-1 text-xs text-ink-muted">
-                      Amount: <span className="font-semibold text-ink">{quote ? formatPkr(quote.total) : "…"}</span>
+                      Amount to send now:{" "}
+                      <span className="font-semibold text-ink">
+                        {quote ? formatPkr(wantsAdvance ? payNow : quote.total) : "…"}
+                      </span>
                     </p>
+                    {wantsAdvance && balanceDue > 0 ? (
+                      <p className="mt-0.5 text-xs text-emerald-800">
+                        Rest on delivery: <span className="font-semibold">{formatPkr(balanceDue)}</span>
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="min-w-0 sm:w-[200px]">
@@ -399,12 +539,12 @@ export function CheckoutForm() {
                           <img
                             src={receiptPreview}
                             alt="Receipt preview"
-                            className="h-24 w-full object-contain bg-white"
+                            className="h-24 w-full bg-white object-contain"
                           />
                           <button
                             type="button"
                             onClick={clearReceipt}
-                            className="absolute right-1.5 top-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink/85 text-white"
+                            className="absolute right-1.5 top-1.5 inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-ink/85 text-white"
                             aria-label="Remove receipt"
                           >
                             <X className="h-3.5 w-3.5" />
@@ -412,7 +552,7 @@ export function CheckoutForm() {
                         </div>
                         <button
                           type="button"
-                          className="w-full border-t border-line px-2 py-1.5 text-xs font-semibold text-ink"
+                          className="w-full cursor-pointer border-t border-line px-2 py-1.5 text-xs font-semibold text-ink"
                           onClick={() => fileRef.current?.click()}
                         >
                           Replace · {receiptName || "receipt"}
@@ -424,8 +564,10 @@ export function CheckoutForm() {
                         className="flex h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-ink/20 bg-white px-2 text-center transition hover:border-ink/40"
                       >
                         <ImagePlus className="h-4 w-4 text-ink" />
-                        <span className="text-xs font-semibold">Attach receipt</span>
-                        <span className="text-[10px] text-ink-muted">Max 2.5 MB</span>
+                        <span className="text-xs font-semibold">
+                          {wantsAdvance ? "Attach advance receipt" : "Attach receipt"}
+                        </span>
+                        <span className="text-[10px] text-ink-muted">Required · Max 2.5 MB</span>
                       </label>
                     )}
                   </div>
@@ -456,6 +598,16 @@ export function CheckoutForm() {
             })}
           </div>
           <p className="mt-3 flex justify-between border-t border-line/70 pt-2 text-sm">
+            <span>Subtotal</span>
+            <span>{quote ? formatPkr(quote.subtotal) : "…"}</span>
+          </p>
+          {discountAmount > 0 ? (
+            <p className="mt-1 flex justify-between text-sm text-emerald-700">
+              <span>Advance discount</span>
+              <span>−{formatPkr(discountAmount)}</span>
+            </p>
+          ) : null}
+          <p className="mt-1 flex justify-between text-sm">
             <span>Delivery</span>
             <span>{quote ? (quote.fee === 0 ? "Free" : formatPkr(quote.fee)) : "…"}</span>
           </p>
@@ -465,6 +617,18 @@ export function CheckoutForm() {
               {quote ? formatPkr(quote.total) : "…"}
             </span>
           </p>
+          {wantsAdvance ? (
+            <div className="mt-2 space-y-1 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+              <p className="flex justify-between gap-2">
+                <span>Pay now</span>
+                <span className="font-semibold tabular-nums">{formatPkr(payNow)}</span>
+              </p>
+              <p className="flex justify-between gap-2">
+                <span>On delivery</span>
+                <span className="font-semibold tabular-nums">{formatPkr(balanceDue)}</span>
+              </p>
+            </div>
+          ) : null}
 
           <label htmlFor={termsId} className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl bg-white/70 p-2.5">
             <input
@@ -493,8 +657,20 @@ export function CheckoutForm() {
           ))}
           {serverError ? <p className="mt-2 text-sm text-danger">{serverError}</p> : null}
 
+          {missingReceipt ? (
+            <p className="mt-2 text-xs font-semibold text-amber-700">
+              Attach your {wantsAdvance ? "advance " : ""}payment receipt to place the order.
+            </p>
+          ) : null}
+
           <Button type="submit" className="mt-3 hidden w-full lg:inline-flex" disabled={blocked}>
-            {formState.isSubmitting ? "Placing order…" : "Place order"}
+            {formState.isSubmitting
+              ? "Placing order…"
+              : missingReceipt
+                ? "Attach receipt to continue"
+                : wantsAdvance
+                  ? "Place order · send advance"
+                  : "Place order"}
           </Button>
         </aside>
       </form>
@@ -505,13 +681,25 @@ export function CheckoutForm() {
       >
         <div className="mx-auto flex max-w-lg items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">Total</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+              {wantsAdvance ? "Pay now" : "Total"}
+            </p>
             <p className="truncate font-display text-lg font-semibold tabular-nums">
-              {quote ? formatPkr(quote.total) : "…"}
+              {quote ? formatPkr(wantsAdvance ? payNow : quote.total) : "…"}
             </p>
           </div>
-          <Button type="submit" form={undefined} className="min-h-11 min-w-[9.5rem]" disabled={blocked} onClick={handleSubmit(onSubmit)}>
-            {formState.isSubmitting ? "Placing…" : "Place order"}
+          <Button
+            type="submit"
+            form={undefined}
+            className="min-h-11 min-w-[9.5rem]"
+            disabled={blocked}
+            onClick={handleSubmit(onSubmit)}
+          >
+            {formState.isSubmitting
+              ? "Placing…"
+              : missingReceipt
+                ? "Add receipt"
+                : "Place order"}
           </Button>
         </div>
       </div>

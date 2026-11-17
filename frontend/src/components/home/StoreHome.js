@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { FindMallRail } from "@/components/home/FindMallRail";
+import { HomeFindBar } from "@/components/home/HomeFindBar";
 import { Hero } from "@/components/home/Hero";
 import { HomeProductRail } from "@/components/home/HomeProductRail";
 import { TrustStrip } from "@/components/home/TrustStrip";
@@ -28,7 +29,8 @@ const TRUST_POINTS = [
 ];
 
 /**
- * Home order: finder → Mall picks (marquee) → New arrivals (carousel) → All toys → All décor.
+ * Home: mobile find sheet → Mall picks marquee → grid shelves.
+ * Desktop keeps the full Find rail + row carousels.
  */
 export function StoreHome({ hero, departments = [], newArrivals = [] }) {
   const finderGroups = useMemo(
@@ -61,32 +63,40 @@ export function StoreHome({ hero, departments = [], newArrivals = [] }) {
         entries={{ who: true, age: true, budget: true }}
       />
 
-      <FindMallRail
-        variant="home"
-        groups={finderGroups}
-        title="Find faster"
-        subtitle="Pick who, age, room or budget"
-        mobileLabel="Find toys & décor · tap a chip"
-        seeAllHref="/search"
-      />
+      <div id="find" className="scroll-mt-28">
+        <div className="lg:hidden">
+          <HomeFindBar groups={finderGroups} seeAllHref="/search" />
+        </div>
+        <div className="hidden lg:block">
+          <FindMallRail
+            variant="home"
+            groups={finderGroups}
+            title="Find faster"
+            subtitle="Pick who, age, type or budget"
+            mobileLabel="Find toys & décor · tap a chip"
+            seeAllHref="/search"
+          />
+        </div>
+      </div>
 
-      <HomeProductRail theme="mix" products={mixed} />
-      <HomeProductRail theme="arrivals" products={newArrivals} />
+      <div className="mt-1 space-y-1 sm:mt-2 sm:space-y-2">
+        <HomeProductRail theme="mix" products={mixed} />
+        <HomeProductRail theme="arrivals" products={newArrivals} />
 
-      {toys?.all?.length ? <HomeProductRail theme="toysAll" products={toys.all} /> : null}
-      {decor?.all?.length ? <HomeProductRail theme="decorAll" products={decor.all} /> : null}
+        {toys?.all?.length ? <HomeProductRail theme="toysAll" products={toys.all} /> : null}
+        {decor?.all?.length ? <HomeProductRail theme="decorAll" products={decor.all} /> : null}
 
-      {extras.map((dept) => (
-        <HomeProductRail
-          key={dept.slug}
-          theme="toysAll"
-          title={`All ${dept.name || dept.slug}`}
-          text={`Swipe the ${dept.name || dept.slug} shelf.`}
-          moreHref={`/${dept.slug}`}
-          products={dept.all}
-          layout="row"
-        />
-      ))}
+        {extras.map((dept) => (
+          <HomeProductRail
+            key={dept.slug}
+            theme="toysAll"
+            title={`All ${dept.name || dept.slug}`}
+            text={`Browse the ${dept.name || dept.slug} shelf.`}
+            moreHref={`/${dept.slug}`}
+            products={dept.all}
+          />
+        ))}
+      </div>
 
       <TrustStrip title="Why Masti Mall" points={TRUST_POINTS} />
     </div>

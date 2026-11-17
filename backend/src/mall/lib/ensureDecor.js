@@ -248,9 +248,14 @@ function artUrl(slug) {
   return `/art/decor/${slug}.svg`;
 }
 
-/** Non-destructive: adds Decor department, categories, and products if missing. */
+/**
+ * Ensures Decor department + categories exist.
+ * Sample products are seeded ONLY when the department is first created —
+ * so admin deletes are not recreated on every server boot.
+ */
 export async function ensureDecorCatalog() {
   let department = await Department.findOne({ slug: "decor" });
+  let isNewDepartment = false;
   if (!department) {
     department = await Department.create({
       name: "Decor",
@@ -264,6 +269,7 @@ export async function ensureDecorCatalog() {
         description: "Wall art, lighting, cushions and table pieces for a warmer home.",
       },
     });
+    isNewDepartment = true;
     console.log("Decor department created");
   } else if (!department.active) {
     department.active = true;
@@ -286,41 +292,43 @@ export async function ensureDecorCatalog() {
   }
 
   let created = 0;
-  for (const product of DECOR_PRODUCTS) {
-    const exists = await Product.findOne({ slug: product.slug }).select("_id");
-    if (exists) continue;
-    const category = categoryDocs[product.category];
-    if (!category) continue;
-    await Product.create({
-      title: product.title,
-      slug: product.slug,
-      sku: `MM-D-${product.slug}`.slice(0, 32).toUpperCase(),
-      description: product.description,
-      highlights: product.highlights,
-      price: product.price,
-      salePrice: product.salePrice,
-      stock: product.stock,
-      images: [
-        { url: artUrl(product.slug), alt: product.title },
-        { url: artUrl(`${product.slug}-alt`), alt: `${product.title}, detail` },
-      ],
-      department: department._id,
-      category: category._id,
-      audience: ["unisex"],
-      ageBands: [],
-      brand: product.brand,
-      tags: product.tags,
-      newlyAdded: !!product.isNew,
-      isFeatured: !!product.isFeatured,
-      status: "active",
-      ratingAvg: 4.6,
-      ratingCount: 8,
-      seo: {
+  if (isNewDepartment) {
+    for (const product of DECOR_PRODUCTS) {
+      const exists = await Product.findOne({ slug: product.slug }).select("_id");
+      if (exists) continue;
+      const category = categoryDocs[product.category];
+      if (!category) continue;
+      await Product.create({
         title: product.title,
-        description: product.description.slice(0, 150),
-      },
-    });
-    created += 1;
+        slug: product.slug,
+        sku: `MM-D-${product.slug}`.slice(0, 32).toUpperCase(),
+        description: product.description,
+        highlights: product.highlights,
+        price: product.price,
+        salePrice: product.salePrice,
+        stock: product.stock,
+        images: [
+          { url: artUrl(product.slug), alt: product.title },
+          { url: artUrl(`${product.slug}-alt`), alt: `${product.title}, detail` },
+        ],
+        department: department._id,
+        category: category._id,
+        audience: ["unisex"],
+        ageBands: [],
+        brand: product.brand,
+        tags: product.tags,
+        newlyAdded: !!product.isNew,
+        isFeatured: !!product.isFeatured,
+        status: "active",
+        ratingAvg: 4.6,
+        ratingCount: 8,
+        seo: {
+          title: product.title,
+          description: product.description.slice(0, 150),
+        },
+      });
+      created += 1;
+    }
   }
 
   // Enable Decor in stored home nav when present.

@@ -17,27 +17,38 @@ function pad(n) {
   return String(n).padStart(2, "0");
 }
 
-function TimeCell({ label, value, pulse }) {
+function TimeCell({ label, value, pulse, compact }) {
   const display = value == null ? "··" : pad(value);
   return (
     <div className="flex flex-col items-center">
       <span
         key={pulse ? display : label}
-        className={`sale-banner__tick grid min-w-[2.15rem] place-items-center rounded-lg bg-white/95 px-1.5 py-1 font-display text-sm font-bold tabular-nums text-[#4c1d95] shadow-sm sm:min-w-[2.5rem] sm:text-base ${
-          pulse && value != null ? "sale-banner__tick--pulse" : ""
-        }`}
+        className={`sale-banner__tick grid place-items-center rounded-md bg-white/95 font-display font-bold tabular-nums text-[#4c1d95] shadow-sm ${
+          compact
+            ? "min-w-[1.55rem] px-1 py-0.5 text-[11px] leading-none"
+            : "min-w-[2.15rem] px-1.5 py-1 text-sm sm:min-w-[2.5rem] sm:text-base"
+        } ${pulse && value != null ? "sale-banner__tick--pulse" : ""}`}
       >
         {display}
       </span>
-      <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/75">{label}</span>
+      <span
+        className={`font-semibold uppercase tracking-wider text-white/75 ${
+          compact ? "mt-0 text-[7px] leading-none" : "mt-0.5 text-[9px]"
+        }`}
+      >
+        {label}
+      </span>
     </div>
   );
 }
 
-function badgeMark(badge) {
-  const match = String(badge || "").match(/(\d+)\.(\d+)/);
-  if (match) return match[1];
-  return String(badge || "S").slice(0, 2).toUpperCase();
+/** Prefer full “11.11” style marks; fall back to a short badge label. */
+function badgeMark(badge, { full = false } = {}) {
+  const raw = String(badge || "SALE").trim();
+  const decimal = raw.match(/(\d+\.\d+)/);
+  if (decimal) return decimal[1];
+  if (full) return raw.length > 10 ? raw.slice(0, 10) : raw;
+  return raw.slice(0, 2).toUpperCase();
 }
 
 /** Top sale banner — content comes from admin settings. */
@@ -51,12 +62,10 @@ export function AnnouncementBar({ banner, message }) {
       const date = new Date(config.endsAt);
       if (!Number.isNaN(date.getTime())) return date;
     }
-    // Fixed calendar deadline — avoid Date.now() during render
     const year = new Date().getFullYear();
     return new Date(year, 10, 18, 23, 59, 59, 999);
   }, [config.endsAt]);
 
-  // Countdown starts after mount so SSR and first client paint match
   const [parts, setParts] = useState(null);
 
   useEffect(() => {
@@ -75,21 +84,71 @@ export function AnnouncementBar({ banner, message }) {
     <div className="sale-banner relative overflow-hidden text-white">
       <div className="sale-banner__shimmer pointer-events-none absolute inset-0" aria-hidden="true" />
 
-      <div className="pointer-events-none absolute -left-6 top-1/2 -translate-y-1/2 opacity-30 sm:opacity-50">
+      <div className="pointer-events-none absolute -left-6 top-1/2 hidden -translate-y-1/2 opacity-50 sm:block">
         <Sparkles className="sale-spin h-16 w-16 text-sun" aria-hidden="true" />
       </div>
-      <div className="pointer-events-none absolute -right-4 top-0 opacity-40 sm:opacity-60">
+      <div className="pointer-events-none absolute -right-4 top-0 hidden opacity-60 sm:block">
         <Gift className="sale-float h-10 w-10 text-white" aria-hidden="true" />
       </div>
       <div className="pointer-events-none absolute bottom-0 right-16 hidden opacity-50 sm:block">
         <Zap className="sale-float-delay h-8 w-8 text-sun" aria-hidden="true" />
       </div>
 
-      <div className="relative mx-auto flex max-w-[1920px] flex-col items-center justify-between gap-2.5 px-3 py-2.5 sm:flex-row sm:gap-4 sm:px-4 sm:py-3 lg:px-5">
+      {/* Mobile: badge + sliding title · subtitle + timer (no Shop) */}
+      <div className="relative mx-auto flex max-w-[1920px] items-center gap-1.5 px-2 py-1.5 sm:hidden">
+        <span
+          className="sale-banner__badge inline-flex h-6 shrink-0 items-center rounded-full bg-sun px-2 font-display text-[11px] font-black tabular-nums tracking-tight text-ink shadow-[0_2px_0_0_#c9860a]"
+          title={config.badge || "SALE"}
+        >
+          {badgeMark(config.badge || "SALE", { full: true })}
+        </span>
+
+        <div
+          className="sale-banner__marquee min-w-0 flex-1"
+          aria-label={[config.title || "Store deals", config.subtitle].filter(Boolean).join(". ")}
+        >
+          <div className="sale-banner__marquee-track">
+            {[0, 1].map((copy) => (
+              <span
+                key={copy}
+                className="sale-banner__marquee-item inline-flex items-baseline gap-1.5 font-display text-[12px] font-semibold leading-none"
+                aria-hidden={copy === 1 ? "true" : undefined}
+              >
+                <span>{config.title || "Store deals"}</span>
+                {config.subtitle ? (
+                  <>
+                    <span className="text-white/45" aria-hidden="true">
+                      ·
+                    </span>
+                    <span className="font-sans text-[11px] font-medium text-white/85">{config.subtitle}</span>
+                  </>
+                ) : null}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {showEnded ? (
+          <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold">Ended</span>
+        ) : (
+          <div className="flex shrink-0 items-end gap-0.5" aria-live="polite" aria-label="Sale countdown">
+            <TimeCell label="D" value={live ? parts.days : null} compact />
+            <span className="mb-2.5 font-display text-[10px] text-white/55">:</span>
+            <TimeCell label="H" value={live ? parts.hours : null} compact />
+            <span className="mb-2.5 font-display text-[10px] text-white/55">:</span>
+            <TimeCell label="M" value={live ? parts.minutes : null} compact />
+            <span className="mb-2.5 font-display text-[10px] text-white/55">:</span>
+            <TimeCell label="S" value={live ? parts.seconds : null} pulse={live} compact />
+          </div>
+        )}
+      </div>
+
+      {/* Desktop / tablet */}
+      <div className="relative mx-auto hidden max-w-[1920px] flex-col items-center justify-between gap-2.5 px-3 py-2.5 sm:flex sm:flex-row sm:gap-4 sm:px-4 sm:py-3 lg:px-5">
         <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
           <span className="sale-banner__badge inline-flex items-center gap-1.5 rounded-full bg-sun px-2.5 py-1 font-display text-xs font-bold tracking-wide text-ink shadow-[0_3px_0_0_#c9860a] sm:text-sm">
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-ink text-[11px] font-black text-sun">
-              {badgeMark(config.badge || "SALE")}
+            <span className="grid h-6 min-w-6 place-items-center rounded-full bg-ink px-1.5 text-[11px] font-black tabular-nums text-sun">
+              {badgeMark(config.badge || "SALE", { full: true })}
             </span>
             {config.badge || "SALE"}
           </span>
@@ -98,8 +157,8 @@ export function AnnouncementBar({ banner, message }) {
             <span className="font-display text-base sm:text-lg">{config.title || "Store deals"}</span>
             {config.subtitle ? (
               <>
-                <span className="mx-1.5 hidden text-white/50 sm:inline">·</span>
-                <span className="block text-white/90 sm:inline">{config.subtitle}</span>
+                <span className="mx-1.5 text-white/50">·</span>
+                <span className="text-white/90">{config.subtitle}</span>
               </>
             ) : null}
           </p>
@@ -136,7 +195,7 @@ export function AnnouncementBar({ banner, message }) {
       </div>
 
       {note ? (
-        <p className="relative border-t border-white/10 px-3 py-1 text-center text-[11px] text-white/70 sm:px-4">
+        <p className="relative hidden border-t border-white/10 px-3 py-1 text-center text-[11px] text-white/70 sm:block sm:px-4">
           {note}
         </p>
       ) : null}

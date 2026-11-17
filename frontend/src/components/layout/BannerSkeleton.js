@@ -2,14 +2,20 @@
 export function BannerSkeleton() {
   return (
     <div
-      className="sale-banner-skeleton relative overflow-hidden px-3 py-3 text-white sm:px-4"
+      className="sale-banner-skeleton relative overflow-hidden text-white"
       role="status"
       aria-live="polite"
       aria-label="Loading deals banner"
     >
       <div className="sale-banner-skeleton__shine pointer-events-none absolute inset-0" aria-hidden="true" />
 
-      <div className="relative mx-auto flex max-w-[1920px] flex-col items-center justify-between gap-3 sm:flex-row sm:gap-4">
+      <div className="relative mx-auto flex max-w-[1920px] items-center gap-2 px-2.5 py-1.5 sm:hidden">
+        <span className="sale-banner-skeleton__pulse inline-flex h-5 w-14 items-center rounded-full bg-sun/90" />
+        <span className="sale-banner-skeleton__pulse h-3 flex-1 rounded-full bg-white/35" />
+        <span className="sale-banner-skeleton__pulse h-7 w-20 rounded-full bg-white/95" />
+      </div>
+
+      <div className="relative mx-auto hidden max-w-[1920px] flex-col items-center justify-between gap-3 px-3 py-2.5 sm:flex sm:flex-row sm:gap-4 sm:px-4 sm:py-3">
         <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
           <span className="sale-banner-skeleton__pulse inline-flex items-center gap-1.5 rounded-full bg-sun/90 px-2.5 py-1 shadow-[0_3px_0_0_#c9860a]">
             <span className="grid h-6 w-6 place-items-center rounded-full bg-ink text-[10px] font-black text-sun">

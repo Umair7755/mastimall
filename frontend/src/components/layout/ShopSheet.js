@@ -2,15 +2,25 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Gift, Sofa, X } from "lucide-react";
 import { PictureTile } from "@/components/home/PictureTile";
 import { useUi } from "@/store/ui";
+import { cn } from "@/lib/cn";
 
 export function ShopSheet({ departments = [] }) {
   const open = useUi((state) => state.shopOpen);
   const close = useUi((state) => state.closeShop);
   const reduce = useReducedMotion();
+  const pathname = usePathname() || "";
+  const searchParams = useSearchParams();
+  const departmentParam = searchParams?.get("department") || "";
+
+  const onToys =
+    pathname === "/toys" || pathname.startsWith("/toys/") || departmentParam === "toys";
+  const onDecor =
+    pathname === "/decor" || pathname.startsWith("/decor/") || departmentParam === "decor";
 
   useEffect(() => {
     if (!open) return undefined;
@@ -44,21 +54,33 @@ export function ShopSheet({ departments = [] }) {
               </button>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 grid grid-cols-2 gap-2">
               <Link
                 href="/toys"
                 onClick={close}
-                className="inline-flex h-10 items-center gap-2 rounded-full bg-[#4f46e5] px-4 text-sm font-semibold text-white"
+                aria-current={onToys ? "page" : undefined}
+                className={cn(
+                  "inline-flex h-12 items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-bold transition",
+                  onToys
+                    ? "border-[#4f46e5] bg-[#4f46e5] text-white ring-2 ring-[#c7d2fe]"
+                    : "border-line/70 bg-white text-ink hover:border-[#4f46e5]/40"
+                )}
               >
-                <Gift size={15} aria-hidden="true" />
+                <Gift size={16} aria-hidden="true" />
                 All toys
               </Link>
               <Link
                 href="/decor"
                 onClick={close}
-                className="inline-flex h-10 items-center gap-2 rounded-full bg-teal-700 px-4 text-sm font-semibold text-white"
+                aria-current={onDecor ? "page" : undefined}
+                className={cn(
+                  "inline-flex h-12 items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-bold transition",
+                  onDecor
+                    ? "border-teal-700 bg-teal-700 text-white ring-2 ring-teal-200"
+                    : "border-line/70 bg-white text-ink hover:border-teal-600/40"
+                )}
               >
-                <Sofa size={15} aria-hidden="true" />
+                <Sofa size={16} aria-hidden="true" />
                 All décor
               </Link>
             </div>

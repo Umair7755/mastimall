@@ -20,7 +20,7 @@ const variants = {
 
 export function buttonClass(variant = "primary", className) {
   return cn(
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 font-display text-sm font-semibold transition duration-150 disabled:pointer-events-none disabled:opacity-50 sm:min-h-12 sm:text-base",
+    "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 font-display text-sm font-semibold transition duration-150 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-12 sm:text-base",
     variants[variant] || variants.primary,
     className
   );

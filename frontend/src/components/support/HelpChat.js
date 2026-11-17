@@ -70,6 +70,43 @@ function saveThread(thread) {
   }
 }
 
+/** Keep the sheet above the soft keyboard on mobile. */
+function useKeyboardSafeSheet(active) {
+  const [offset, setOffset] = useState(0);
+  const [height, setHeight] = useState(null);
+
+  useEffect(() => {
+    if (!active || typeof window === "undefined") {
+      setOffset(0);
+      setHeight(null);
+      return undefined;
+    }
+
+    const vv = window.visualViewport;
+    if (!vv) return undefined;
+
+    function sync() {
+      const layoutH = window.innerHeight;
+      const visibleH = vv.height;
+      const keyboard = Math.max(0, layoutH - visibleH - vv.offsetTop);
+      setOffset(keyboard);
+      setHeight(Math.max(280, Math.round(visibleH - 12)));
+    }
+
+    sync();
+    vv.addEventListener("resize", sync);
+    vv.addEventListener("scroll", sync);
+    window.addEventListener("resize", sync);
+    return () => {
+      vv.removeEventListener("resize", sync);
+      vv.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+    };
+  }, [active]);
+
+  return { offset, height };
+}
+
 export function HelpChat() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("help");
@@ -83,7 +120,9 @@ export function HelpChat() {
   const [error, setError] = useState("");
   const [unread, setUnread] = useState(0);
   const listRef = useRef(null);
+  const composerRef = useRef(null);
   const messageCountRef = useRef(0);
+  const { offset: keyboardOffset, height: sheetHeight } = useKeyboardSafeSheet(open);
 
   async function fetchThread(publicId, { markRead = false } = {}) {
     const qs = markRead ? "?markRead=1" : "";
@@ -115,9 +154,17 @@ export function HelpChat() {
   useEffect(() => {
     if (!listRef.current) return;
     listRef.current.scrollTop = listRef.current.scrollHeight;
-  }, [messages, open, tab]);
+  }, [messages, open, tab, keyboardOffset]);
 
-  // Always poll the thread directly so admin replies appear without relying on revision alone.
+  useEffect(() => {
+    if (!open) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!thread?.publicId) return undefined;
     let cancelled = false;
@@ -195,26 +242,54 @@ export function HelpChat() {
     setUnread(0);
   }
 
+  function onComposerFocus() {
+    window.setTimeout(() => {
+      composerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+    }, 80);
+  }
+
+  const mobileSheetStyle = sheetHeight
+    ? {
+        height: `${sheetHeight}px`,
+        maxHeight: `${sheetHeight}px`,
+        bottom: `${Math.max(0, keyboardOffset)}px`,
+      }
+    : undefined;
+
   return (
-    <div className="pointer-events-none mobile-chrome-bottom fixed right-3 z-[45] flex flex-col items-end gap-3 sm:right-5">
+    <div
+      className={cn(
+        "pointer-events-none fixed z-[45] flex flex-col items-end gap-3",
+        open
+          ? "inset-x-0 bottom-0 sm:inset-x-auto sm:bottom-[max(1.25rem,env(safe-area-inset-bottom))] sm:right-5"
+          : "help-chat-dock mobile-chrome-bottom right-3 sm:right-5"
+      )}
+      style={!open ? undefined : keyboardOffset ? { bottom: 0 } : undefined}
+    >
       <AnimatePresence>
         {open ? (
           <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 380, damping: 28 }}
-            className="pointer-events-auto flex h-[min(34rem,calc(100dvh-8.5rem))] w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[1.35rem] border border-[#e8dfd0] bg-[#fbf7f1] shadow-[0_24px_60px_-28px_rgba(15,23,42,0.55)]"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            className={cn(
+              "pointer-events-auto flex w-full flex-col overflow-hidden border-[#e8dfd0] bg-[#fbf7f1] shadow-[0_24px_60px_-28px_rgba(15,23,42,0.55)]",
+              "rounded-t-[1.35rem] border border-b-0 sm:rounded-[1.35rem] sm:border",
+              "h-[min(92dvh,40rem)] sm:h-[min(34rem,calc(100dvh-6rem))] sm:w-[min(24rem,calc(100vw-2.5rem))]"
+            )}
+            style={mobileSheetStyle}
           >
-            <div className="relative overflow-hidden bg-[#1e1b4b] px-4 pb-3 pt-4 text-white">
+            <div className="relative shrink-0 overflow-hidden bg-[#1e1b4b] px-4 pb-3 pt-3 text-white sm:pt-4">
               <div
                 className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-[#fbbf24]/25 blur-2xl"
                 aria-hidden="true"
               />
               <div className="relative flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">Masti Mall help</p>
-                  <h2 className="mt-1 font-display text-xl font-semibold leading-tight">
+                  <h2 className="mt-1 font-display text-lg font-semibold leading-tight sm:text-xl">
                     {greeting}. How can I help you?
                   </h2>
                   <p className="mt-1 text-xs text-white/70">Quick guides, or chat with our team.</p>
@@ -229,7 +304,7 @@ export function HelpChat() {
                 </button>
               </div>
 
-              <div className="relative mt-4 grid grid-cols-2 gap-1 rounded-full bg-black/25 p-1">
+              <div className="relative mt-3 grid grid-cols-2 gap-1 rounded-full bg-black/25 p-1 sm:mt-4">
                 {[
                   { id: "help", label: "Guide me" },
                   { id: "chat", label: "Want to chat?" },
@@ -255,7 +330,7 @@ export function HelpChat() {
 
             <div className="flex min-h-0 flex-1 flex-col">
               {tab === "help" ? (
-                <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">
                   {!guide ? (
                     <div className="grid gap-2">
                       <p className="px-1 text-xs font-semibold uppercase tracking-[0.12em] text-ink-muted">
@@ -339,7 +414,10 @@ export function HelpChat() {
                 </div>
               ) : (
                 <>
-                  <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">
+                  <div
+                    ref={listRef}
+                    className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-3 py-3"
+                  >
                     {!messages.length ? (
                       <div className="rounded-2xl border border-dashed border-[#d6c7b3] bg-white/70 px-3 py-6 text-center">
                         <p className="font-display text-base font-semibold text-ink">Start a conversation</p>
@@ -380,22 +458,33 @@ export function HelpChat() {
                     )}
                   </div>
 
-                  <form onSubmit={startOrSend} className="border-t border-[#eadfce] bg-white p-3">
+                  <form
+                    ref={composerRef}
+                    onSubmit={startOrSend}
+                    className="shrink-0 border-t border-[#eadfce] bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+                  >
                     {!thread ? (
-                      <div className="mb-2 grid grid-cols-2 gap-2">
+                      <div className="mb-2 grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
                         <input
                           required
                           value={name}
                           onChange={(e) => setName(e.target.value)}
+                          onFocus={onComposerFocus}
                           placeholder="Your name"
-                          className="h-10 rounded-xl border border-line bg-[#fbf7f1] px-3 text-sm outline-none ring-brand/30 focus:ring-2"
+                          autoComplete="name"
+                          enterKeyHint="next"
+                          className="h-11 rounded-xl border border-line bg-[#fbf7f1] px-3 text-base outline-none ring-brand/30 focus:ring-2 sm:text-sm"
                         />
                         <input
                           required
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
+                          onFocus={onComposerFocus}
                           placeholder="03XX…"
-                          className="h-10 rounded-xl border border-line bg-[#fbf7f1] px-3 text-sm outline-none ring-brand/30 focus:ring-2"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          enterKeyHint="next"
+                          className="h-11 rounded-xl border border-line bg-[#fbf7f1] px-3 text-base outline-none ring-brand/30 focus:ring-2 sm:text-sm"
                         />
                       </div>
                     ) : null}
@@ -405,14 +494,16 @@ export function HelpChat() {
                         rows={2}
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
+                        onFocus={onComposerFocus}
                         placeholder={thread ? "Write a reply…" : "How can we help?"}
-                        className="min-h-10 flex-1 resize-none rounded-xl border border-line bg-[#fbf7f1] px-3 py-2 text-sm outline-none ring-brand/30 focus:ring-2"
+                        enterKeyHint="send"
+                        className="min-h-11 max-h-28 flex-1 resize-none rounded-xl border border-line bg-[#fbf7f1] px-3 py-2.5 text-base outline-none ring-brand/30 focus:ring-2 sm:text-sm"
                       />
                       <button
                         type="submit"
                         disabled={pending}
                         aria-label="Send message"
-                        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#fbbf24] text-ink shadow-[0_3px_0_0_#c9860a] transition enabled:hover:brightness-105 disabled:opacity-60"
+                        className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#fbbf24] text-ink shadow-[0_3px_0_0_#c9860a] transition enabled:hover:brightness-105 disabled:opacity-60"
                       >
                         <Send size={16} />
                       </button>
@@ -426,27 +517,26 @@ export function HelpChat() {
         ) : null}
       </AnimatePresence>
 
-      <button
-        type="button"
-        aria-label={open ? "Close help chat" : "Open help chat"}
-        onClick={() => {
-          setOpen((value) => {
-            const next = !value;
-            if (next && (unread > 0 || messages.some((m) => m.from === "admin"))) {
+      {!open ? (
+        <button
+          type="button"
+          aria-label="Open help chat"
+          onClick={() => {
+            setOpen(true);
+            if (unread > 0 || messages.some((m) => m.from === "admin")) {
               setTab("chat");
             }
-            return next;
-          });
-        }}
-        className="pointer-events-auto relative grid h-14 w-14 place-items-center rounded-full bg-[#1e1b4b] text-[#fbbf24] shadow-[0_14px_30px_-12px_rgba(30,27,75,0.85)] transition hover:scale-[1.03] active:scale-95"
-      >
-        {open ? <X size={22} /> : <MessageCircle size={22} />}
-        {!open && unread > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-coral px-1 text-[10px] font-bold text-white">
-            {unread > 9 ? "9+" : unread}
-          </span>
-        ) : null}
-      </button>
+          }}
+          className="pointer-events-auto relative grid h-14 w-14 place-items-center rounded-full bg-[#1e1b4b] text-[#fbbf24] shadow-[0_14px_30px_-12px_rgba(30,27,75,0.85)] transition hover:scale-[1.03] active:scale-95"
+        >
+          <MessageCircle size={22} />
+          {unread > 0 ? (
+            <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-coral px-1 text-[10px] font-bold text-white">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          ) : null}
+        </button>
+      ) : null}
     </div>
   );
 }

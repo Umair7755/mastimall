@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Input";
 import { apiFetch } from "@/lib/browser";
 import { isPkMobile, normalizePhone } from "@/lib/phone";
-import { askParentMessage, openWhatsAppShare } from "@/lib/share";
+
+export { AskParentButton, askParent } from "@/components/product/AskParentButton";
 
 export function NotifyForm({ productId }) {
   const [phone, setPhone] = useState("");
@@ -39,21 +39,8 @@ export function NotifyForm({ productId }) {
         <Input value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="tel" autoComplete="tel" />
       </Field>
       <Button type="submit" variant="secondary">
-        Tell me when it's back
+        Tell me when it&apos;s back
       </Button>
     </form>
-  );
-}
-
-export function askParent(product, href) {
-  openWhatsAppShare(askParentMessage(product, `${window.location.origin}${href}`));
-}
-
-export function AskParentButton({ product, href }) {
-  return (
-    <Button variant="soft" className="w-full" onClick={() => askParent(product, href)}>
-      <MessageCircle aria-hidden="true" />
-      Ask Mom or Dad
-    </Button>
   );
 }

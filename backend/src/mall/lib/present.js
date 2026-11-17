@@ -101,6 +101,13 @@ export function presentOrder(order) {
     payment: {
       method: doc.payment?.method,
       status: doc.payment?.status,
+      advancePlan: doc.payment?.advancePlan || 'none',
+      discountPercent: doc.payment?.discountPercent || 0,
+      discountAmount: doc.payment?.discountAmount || doc.discountAmount || 0,
+      advancePercent: doc.payment?.advancePercent || 0,
+      advanceAmount: doc.payment?.advanceAmount || 0,
+      balanceAmount: doc.payment?.balanceAmount || 0,
+      advanceStatus: doc.payment?.advanceStatus || 'none',
       receipt: doc.payment?.receipt?.url
         ? {
             url: doc.payment.receipt.url,
@@ -109,7 +116,9 @@ export function presentOrder(order) {
         : null,
     },
     shipping: doc.shipping || { fee: 0 },
+    pricing: doc.pricing || null,
     subtotal: doc.subtotal,
+    discountAmount: doc.discountAmount || doc.payment?.discountAmount || 0,
     total: doc.total,
     fragile: !!doc.fragile,
     status: doc.status,

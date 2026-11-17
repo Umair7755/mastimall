@@ -13,12 +13,53 @@ export const AGE_BANDS = [
   { slug: "12-plus", label: "12+", image: "/art/age-12-plus.svg", color: "#EDE9FE" },
 ];
 
+/**
+ * Budget chips /budget/[slug]:
+ * - under-1000 → Rs 0–1,000
+ * - under-3000 → Rs 0–3,000
+ * - 5000-plus  → Rs 5,000 and above (no max)
+ */
 export const BUDGETS = [
-  { slug: "under-500", label: "Under 500", caption: "Tiny joys, big smiles", max: 500, image: "/art/budget-500.svg", color: "#FEF3C7" },
-  { slug: "under-1000", label: "Under 1,000", caption: "More fun, more play", max: 1000, image: "/art/budget-1000.svg", color: "#E0E7FF" },
-  { slug: "under-2000", label: "Under 2,000", caption: "Toys they talk about", max: 2000, image: "/art/budget-2000.svg", color: "#D1FAE5" },
-  { slug: "under-5000", label: "Under 5,000", caption: "Gifts they will remember", max: 5000, image: "/art/budget-5000.svg", color: "#FCE7F3" },
+  {
+    slug: "under-1000",
+    label: "Under 1,000",
+    caption: "More fun, more play",
+    min: 0,
+    max: 1000,
+    chipAmount: 1000,
+    image: "/art/budget-1000.svg",
+    color: "#E0E7FF",
+  },
+  {
+    slug: "under-3000",
+    label: "Under 3,000",
+    caption: "Toys they talk about",
+    min: 0,
+    max: 3000,
+    chipAmount: 3000,
+    image: "/art/budget-2000.svg",
+    color: "#D1FAE5",
+  },
+  {
+    slug: "5000-plus",
+    label: "Rs 5,000+",
+    caption: "5,000 or more",
+    min: 5000,
+    max: null,
+    chipAmount: 5000,
+    orMore: true,
+    image: "/art/budget-5000.svg",
+    color: "#FCE7F3",
+  },
 ];
+
+/** Old budget URLs still resolve. */
+const BUDGET_ALIASES = {
+  "under-500": "under-1000",
+  "under-2000": "under-3000",
+  "under-5000": "5000-plus",
+  "from-5000": "5000-plus",
+};
 
 export const SORTS = [
   { id: "popular", label: "Popular" },
@@ -137,5 +178,17 @@ export function audienceLabel(value) {
 }
 
 export function budgetBySlug(slug) {
-  return BUDGETS.find((item) => item.slug === slug) || null;
+  const key = BUDGET_ALIASES[slug] || slug;
+  return BUDGETS.find((item) => item.slug === key) || null;
+}
+
+/** min/max query values for a budget band (null = open end). */
+export function budgetPriceRange(budget) {
+  if (!budget) return { minPrice: null, maxPrice: null };
+  const min = Number(budget.min);
+  const max = budget.max == null ? null : Number(budget.max);
+  return {
+    minPrice: Number.isFinite(min) && min > 0 ? min : null,
+    maxPrice: Number.isFinite(max) && max > 0 ? max : null,
+  };
 }

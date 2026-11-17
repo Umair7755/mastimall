@@ -1,18 +1,33 @@
-import { Armchair, Baby, BedDouble, Briefcase, Cake, Sparkles, UtensilsCrossed, Wallet } from "lucide-react";
+import {
+  Armchair,
+  Baby,
+  Cake,
+  Frame,
+  Image as ImageIcon,
+  Lamp,
+  Sparkles,
+  UtensilsCrossed,
+  Wallet,
+} from "lucide-react";
 import { AGE_BANDS, AUDIENCES, BUDGETS } from "@/lib/constants";
 
-export const DECOR_ROOMS = [
-  { slug: "living", label: "Living", Icon: Armchair, color: "#EDE9FE" },
-  { slug: "bedroom", label: "Bedroom", Icon: BedDouble, color: "#FCE7F3" },
-  { slug: "kids-room", label: "Kids", Icon: Baby, color: "#FEF3C7" },
-  { slug: "dining", label: "Dining", Icon: UtensilsCrossed, color: "#D1FAE5" },
-  { slug: "office", label: "Office", Icon: Briefcase, color: "#E0E7FF" },
+/** Decor product types (categories) — not rooms. */
+export const DECOR_TYPES = [
+  { slug: "wall-art", label: "Wall art", Icon: ImageIcon, color: "#EDE9FE" },
+  { slug: "cushions-throws", label: "Cushions", Icon: Armchair, color: "#FCE7F3" },
+  { slug: "lamps-lighting", label: "Lamps", Icon: Lamp, color: "#FEF3C7" },
+  { slug: "vases-planters", label: "Vases", Icon: UtensilsCrossed, color: "#D1FAE5" },
+  { slug: "frames-mirrors", label: "Frames", Icon: Frame, color: "#E0E7FF" },
+  { slug: "table-decor", label: "Table", Icon: Sparkles, color: "#FFEDD5" },
 ];
 
-/** Which chip groups each department shows. Add a slug here when a new department launches. */
+/** @deprecated use DECOR_TYPES — kept so old imports do not break */
+export const DECOR_ROOMS = DECOR_TYPES;
+
+/** Which chip groups each department shows. */
 export const DEPARTMENT_FINDER = {
   toys: ["audience", "age", "budget"],
-  decor: ["room", "budget"],
+  decor: ["category", "budget"],
 };
 
 /** Default Mall picks weight by department slug (must sum ~1). */
@@ -21,19 +36,39 @@ export const DEPARTMENT_MIX_WEIGHT = {
   decor: 0.3,
 };
 
+function matchBudgetFromLimit(limit) {
+  const n = Number(limit);
+  if (!Number.isFinite(n)) return null;
+  if (n >= 5000) return BUDGETS.find((item) => item.orMore) || null;
+  return (
+    BUDGETS.find((item) => item.max === n || item.chipAmount === n) ||
+    BUDGETS.filter((item) => item.max != null).sort((a, b) => a.max - b.max).find((item) => n <= item.max) ||
+    null
+  );
+}
+
 function budgetItems(budgetLimits, { department } = {}) {
-  const limits = budgetLimits?.length ? budgetLimits : BUDGETS.map((item) => item.max);
-  return limits.map((max) => {
-    const known = BUDGETS.find((item) => item.max === Number(max));
-    const slug = known?.slug || `under-${max}`;
-    const href = department ? `/budget/${slug}?department=${department}` : `/budget/${slug}`;
+  const bands = budgetLimits?.length
+    ? [
+        ...new Map(
+          budgetLimits
+            .map((limit) => matchBudgetFromLimit(limit))
+            .filter(Boolean)
+            .map((band) => [band.slug, band])
+        ).values(),
+      ]
+    : BUDGETS;
+
+  return bands.map((band) => {
+    const amount = band.chipAmount ?? (band.orMore ? band.min : band.max);
+    const href = department ? `/budget/${band.slug}?department=${department}` : `/budget/${band.slug}`;
     return {
-      key: slug,
+      key: band.slug,
       href,
-      label: `Rs ${Number(max).toLocaleString("en-PK")}`,
-      sub: "max",
-      image: known?.image,
-      color: known?.color || "#D1FAE5",
+      label: `Rs ${Number(amount).toLocaleString("en-PK")}`,
+      sub: band.orMore ? "or more" : "max",
+      image: band.image,
+      color: band.color || "#D1FAE5",
       emphasis: "budget",
     };
   });
@@ -78,20 +113,22 @@ const BUILDERS = {
     Icon: Wallet,
     items: budgetItems(budgetLimits, { department }),
   }),
-  room: ({ department = "decor" } = {}) => ({
-    key: "room",
-    label: "Room",
+  category: ({ department = "decor" } = {}) => ({
+    key: "type",
+    label: "Type",
     hint: "Decor",
     tone: "bg-teal-700 text-white ring-teal-200",
-    Icon: Armchair,
-    items: DECOR_ROOMS.map((room) => ({
-      key: room.slug,
-      href: `/search?department=${department}&tag=${room.slug}`,
-      label: room.label,
-      color: room.color,
-      ChipIcon: room.Icon,
+    Icon: ImageIcon,
+    items: DECOR_TYPES.map((item) => ({
+      key: item.slug,
+      href: `/${department}/${item.slug}`,
+      label: item.label,
+      color: item.color,
+      ChipIcon: item.Icon,
     })),
   }),
+  /** Alias so older “room” keys still resolve to decor types */
+  room: (opts) => BUILDERS.category(opts),
 };
 
 /** Finder groups for one department page. */
@@ -101,8 +138,7 @@ export function buildDepartmentFinderGroups(slug, { budgetLimits } = {}) {
 }
 
 /**
- * Mall home: union of groups from active departments (audience/age once, room once, budget once mall-wide).
- * Pass department slugs in display order.
+ * Mall home: union of groups from active departments (audience/age once, type once, budget once).
  */
 export function buildMallFinderGroups(departmentSlugs = ["toys", "decor"], { budgetLimits } = {}) {
   const seen = new Set();
@@ -112,7 +148,6 @@ export function buildMallFinderGroups(departmentSlugs = ["toys", "decor"], { bud
     for (const key of keys) {
       if (seen.has(key)) continue;
       seen.add(key);
-      // Budget on mall home stays mall-wide (no department query).
       const group = BUILDERS[key]?.({
         budgetLimits,
         department: key === "budget" ? undefined : slug,

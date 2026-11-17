@@ -46,6 +46,7 @@ export function productQuery(input) {
   set("age", one(query.age) || input.age);
   set("minPrice", one(query.minPrice) || input.minPrice);
   set("maxPrice", one(query.maxPrice) || input.maxPrice);
+  set("budget", one(query.budget) || input.budget);
   set("brand", one(query.brand));
   set("tag", one(query.tag) || input.tag);
   set("inStock", one(query.inStock));

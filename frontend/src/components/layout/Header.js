@@ -18,7 +18,6 @@ import {
 import { motion } from "motion/react";
 import { MastiLogo } from "@/components/brand/MastiLogo";
 import { SearchField } from "@/components/layout/SearchField";
-import { MobileShopLinks } from "@/components/layout/MobileShopLinks";
 import { PictureTile } from "@/components/home/PictureTile";
 import { useCartReady } from "@/hooks/useStoreReady";
 import { apiFetch } from "@/lib/browser";
@@ -100,8 +99,8 @@ function HeaderAction({ href, onClick, icon: Icon, label, tone = "soft", badge, 
     love: "border-coral/20 bg-[#fff1f4] text-[#be123c] hover:bg-coral hover:text-white",
   };
   const className = cn(
-    "relative inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border text-sm font-semibold transition sm:h-12",
-    compactOnMobile ? "px-2.5 sm:px-3.5" : "px-3.5",
+    "relative inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-full border text-sm font-semibold transition sm:h-12",
+    compactOnMobile ? "px-2 sm:px-3.5" : "px-3.5",
     tones[tone] || tones.soft
   );
 
@@ -209,15 +208,15 @@ export function Header({ nav = [], departments = [] }) {
         scrolled && "shadow-nav"
       )}
     >
-      <div className={`${CONTAINER} py-2.5 sm:py-3`}>
+      <div className={`${CONTAINER} py-1.5 sm:py-3`}>
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-2 lg:gap-4">
           <button
             type="button"
             onClick={openShop}
             aria-label="Open menu"
-            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-ink px-3 font-display text-base font-semibold text-white sm:h-12 sm:px-4 lg:hidden"
+            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-ink px-2.5 font-display text-base font-semibold text-white sm:h-12 sm:px-4 lg:hidden"
           >
-            <Menu aria-hidden="true" size={18} />
+            <Menu aria-hidden="true" size={17} />
             <span className="hidden min-[400px]:inline">Menu</span>
           </button>
 
@@ -228,7 +227,7 @@ export function Header({ nav = [], departments = [] }) {
               slogan="moods"
               orbit={false}
               tagline={false}
-              className="!h-[4.6rem] !w-[12.2rem] sm:!h-[5.35rem] sm:!w-[14.2rem] lg:!h-[6rem] lg:!w-[16rem]"
+              className="!h-[3.85rem] !w-[10.4rem] sm:!h-[5.35rem] sm:!w-[14.2rem] lg:!h-[6rem] lg:!w-[16rem]"
             />
           </Link>
 
@@ -266,9 +265,8 @@ export function Header({ nav = [], departments = [] }) {
           </div>
         </div>
 
-        <div className="mt-2.5 space-y-2.5 lg:hidden">
+        <div className="mt-1.5 lg:hidden">
           <SearchField id="store-search-mobile" />
-          <MobileShopLinks />
         </div>
 
         <nav

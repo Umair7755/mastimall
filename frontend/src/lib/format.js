@@ -4,7 +4,8 @@ export function formatPkr(value) {
   return `Rs ${new Intl.NumberFormat("en-PK").format(amount)}`;
 }
 
-/** "Under 1,000" for a budget tile. */
-export function budgetLabel(limit) {
-  return `Under ${new Intl.NumberFormat("en-PK").format(limit)}`;
+/** "Under 1,000" / "5,000 or more" for a budget tile. */
+export function budgetLabel(limit, { orMore = false } = {}) {
+  const amount = new Intl.NumberFormat("en-PK").format(limit);
+  return orMore ? `${amount}+` : `Under ${amount}`;
 }

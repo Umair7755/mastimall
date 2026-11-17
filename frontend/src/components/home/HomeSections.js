@@ -51,7 +51,7 @@ export function normalizeHomeSections(sections = []) {
       title: "Find toys",
       order: 1,
       active: true,
-      config: { limits: budgetSection?.config?.limits || [500, 1000, 2000, 5000] },
+      config: { limits: budgetSection?.config?.limits || [1000, 3000, 5000] },
     });
   }
 

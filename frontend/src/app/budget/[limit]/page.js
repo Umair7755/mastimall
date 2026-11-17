@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { BudgetTiles } from "@/components/home/BudgetTiles";
 import { ProductListing } from "@/components/catalog/ProductListing";
 import { ListingSkeleton } from "@/components/ui/Skeleton";
-import { BUDGETS, DEFAULT_FILTERS, budgetBySlug } from "@/lib/constants";
+import { BUDGETS, DEFAULT_FILTERS, budgetBySlug, budgetPriceRange } from "@/lib/constants";
 import { getDepartments, getProducts } from "@/lib/data";
 import { one, productQuery } from "@/lib/paths";
 
@@ -42,10 +42,13 @@ async function BudgetContent({ params, searchParams }) {
   let result = { items: [], total: 0, page: 1, pages: 0 };
   let problem = "";
   try {
+    const range = budgetPriceRange(match);
     result =
       (await getProducts(
         productQuery({
-          maxPrice: match.max,
+          minPrice: range.minPrice || undefined,
+          maxPrice: range.maxPrice || undefined,
+          budget: match.slug,
           department: department || undefined,
           excludeAdult: department !== "decor",
           searchParams: query,

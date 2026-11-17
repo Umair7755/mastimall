@@ -38,9 +38,9 @@ export function SearchField({ initial = "", id = "store-search" }) {
     <div ref={box} className="relative">
       <form
         onSubmit={submit}
-        className="flex items-center gap-2 rounded-full border border-line/80 bg-canvas/80 px-4 shadow-soft backdrop-blur transition focus-within:border-brand focus-within:bg-surface focus-within:shadow-nav"
+        className="flex items-center gap-2 rounded-full border border-line/80 bg-canvas/80 px-3 shadow-soft backdrop-blur transition focus-within:border-brand focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgb(109_40_217_/_0.22)] focus-within:ring-0 sm:px-4"
       >
-        <Search aria-hidden="true" className="text-brand" size={18} />
+        <Search aria-hidden="true" className="text-brand" size={16} />
         <label className="sr-only" htmlFor={id}>
           Search toys
         </label>
@@ -53,7 +53,7 @@ export function SearchField({ initial = "", id = "store-search" }) {
           }}
           onFocus={() => setOpen(true)}
           placeholder="Search toys, ages, brands…"
-          className="h-12 w-full bg-transparent text-base outline-none placeholder:text-ink-muted lg:h-12"
+          className="h-10 w-full bg-transparent text-[15px] outline-none ring-0 placeholder:text-ink-muted focus:outline-none focus-visible:outline-none sm:h-11 lg:h-12 lg:text-base"
         />
       </form>
       {open && items.length ? (
