@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   Baby,
@@ -18,7 +20,9 @@ import {
 } from "lucide-react";
 import { MastiLogo } from "@/components/brand/MastiLogo";
 import { TrustBar } from "@/components/home/TrustBar";
+import { useCheckoutSettings } from "@/hooks/useCheckoutSettings";
 import { AGE_BANDS, AUDIENCES, BUDGETS } from "@/lib/constants";
+import { formatPkr } from "@/lib/format";
 import { CONTAINER } from "@/lib/layout";
 
 const SUPPORT_EMAIL = "support@mastimall.store";
@@ -47,6 +51,7 @@ function FootLink({ href, icon: Icon, children, external = false }) {
 }
 
 export function Footer({ departments = [], whatsapp = "" }) {
+  const delivery = useCheckoutSettings();
   const waDigits = String(whatsapp || SUPPORT_PHONE).replace(/[^\d]/g, "");
   const wa = waDigits.startsWith("92") ? waDigits : waDigits.replace(/^0/, "92");
 
@@ -62,7 +67,11 @@ export function Footer({ departments = [], whatsapp = "" }) {
           {[
             { icon: ShieldCheck, title: "Checked prices", text: "Totals are verified on the server." },
             { icon: Truck, title: "Pakistan delivery", text: "COD nationwide · wallets with receipt." },
-            { icon: Package, title: "Free from Rs 3,000", text: "Lower orders still ship for a small fee." },
+            {
+              icon: Package,
+              title: `Free from ${formatPkr(delivery.freeShippingAt)}`,
+              text: `Near cities ${formatPkr(delivery.nearFee)} · others ${formatPkr(delivery.farFee)}.`,
+            },
             { icon: HeartHandshake, title: "Guest checkout", text: "Name, phone, city, address. Done." },
           ].map((item) => {
             const Icon = item.icon;

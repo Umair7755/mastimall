@@ -69,12 +69,18 @@ export const SORTS = [
 
 export const SORT_MORE = { id: "price-desc", label: "Price: high to low" };
 
-/** Keep these numbers in step with backend/src/mall/lib/shipping.js. */
+/** Fallback delivery copy. Live values come from GET /settings/checkout. */
 export const DELIVERY = {
   freeAt: 3000,
   nearFee: 200,
   farFee: 250,
-  nearCities: "Karachi, Lahore, Islamabad and Rawalpindi",
+  nearCitiesList: ["Karachi", "Lahore", "Islamabad", "Rawalpindi"],
+  get nearCities() {
+    const list = this.nearCitiesList || [];
+    if (list.length <= 1) return list[0] || "";
+    if (list.length === 2) return `${list[0]} and ${list[1]}`;
+    return `${list.slice(0, -1).join(", ")}, and ${list[list.length - 1]}`;
+  },
 };
 
 /** Shared catalog filters when a page does not get category-specific ones. */
@@ -158,7 +164,7 @@ export const FALLBACK_HOME = {
         points: [
           { title: "Flexible payment", text: "COD, JazzCash, or EasyPaisa. Wallet orders need a receipt at checkout." },
           { title: "Prices checked again", text: "The total is added up on our server, from the live price and stock." },
-          { title: "Free delivery from Rs 3,000", text: "Under that, delivery is Rs 200 in the big cities and Rs 250 elsewhere." },
+          { title: "Free delivery threshold", text: "City fees apply under the free-shipping total — live amounts show at checkout." },
           { title: "No account needed", text: "A name, a phone number, a city and an address. That is the whole checkout." },
         ],
       },

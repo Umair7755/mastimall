@@ -250,12 +250,11 @@ function artUrl(slug) {
 
 /**
  * Ensures Decor department + categories exist.
- * Sample products are seeded ONLY when the department is first created —
- * so admin deletes are not recreated on every server boot.
+ * Sample products are NEVER created on API boot — only when seedProducts: true
+ * (explicit `npm run seed`). Admin deletes must stay deleted.
  */
-export async function ensureDecorCatalog() {
+export async function ensureDecorCatalog({ seedProducts = false } = {}) {
   let department = await Department.findOne({ slug: "decor" });
-  let isNewDepartment = false;
   if (!department) {
     department = await Department.create({
       name: "Decor",
@@ -269,8 +268,7 @@ export async function ensureDecorCatalog() {
         description: "Wall art, lighting, cushions and table pieces for a warmer home.",
       },
     });
-    isNewDepartment = true;
-    console.log("Decor department created");
+    console.log("Decor department created (structure only — no sample products)");
   } else if (!department.active) {
     department.active = true;
     await department.save();
@@ -292,7 +290,7 @@ export async function ensureDecorCatalog() {
   }
 
   let created = 0;
-  if (isNewDepartment) {
+  if (seedProducts) {
     for (const product of DECOR_PRODUCTS) {
       const exists = await Product.findOne({ slug: product.slug }).select("_id");
       if (exists) continue;

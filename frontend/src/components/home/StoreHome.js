@@ -6,33 +6,38 @@ import { HomeFindBar } from "@/components/home/HomeFindBar";
 import { Hero } from "@/components/home/Hero";
 import { HomeProductRail } from "@/components/home/HomeProductRail";
 import { TrustStrip } from "@/components/home/TrustStrip";
+import { useCheckoutSettings } from "@/hooks/useCheckoutSettings";
 import { buildMallFinderGroups, DEPARTMENT_MIX_WEIGHT } from "@/lib/finderGroups";
+import { formatPkr } from "@/lib/format";
 import { mixProductsWeighted } from "@/lib/mixProducts";
-
-const TRUST_POINTS = [
-  {
-    title: "Flexible payment",
-    text: "COD, JazzCash, or EasyPaisa. Wallet orders need a receipt at checkout.",
-  },
-  {
-    title: "Prices checked again",
-    text: "Totals are calculated on our server from live price and stock.",
-  },
-  {
-    title: "Free delivery from Rs 3,000",
-    text: "Under that, delivery is Rs 200 in big cities and Rs 250 elsewhere.",
-  },
-  {
-    title: "Toys + décor, one checkout",
-    text: "Fill a cart with play and home pieces — one order, one track link.",
-  },
-];
 
 /**
  * Home: mobile find sheet → Mall picks marquee → grid shelves.
  * Desktop keeps the full Find rail + row carousels.
  */
 export function StoreHome({ hero, departments = [], newArrivals = [] }) {
+  const delivery = useCheckoutSettings();
+  const trustPoints = useMemo(
+    () => [
+      {
+        title: "Flexible payment",
+        text: "COD, JazzCash, or EasyPaisa. Wallet orders need a receipt at checkout.",
+      },
+      {
+        title: "Prices checked again",
+        text: "Totals are calculated on our server from live price and stock.",
+      },
+      {
+        title: `Free delivery from ${formatPkr(delivery.freeShippingAt)}`,
+        text: `Under that, delivery is ${formatPkr(delivery.nearFee)} in big cities and ${formatPkr(delivery.farFee)} elsewhere.`,
+      },
+      {
+        title: "Toys + décor, one checkout",
+        text: "Fill a cart with play and home pieces — one order, one track link.",
+      },
+    ],
+    [delivery.farFee, delivery.freeShippingAt, delivery.nearFee]
+  );
   const finderGroups = useMemo(
     () => buildMallFinderGroups(departments.length ? departments.map((d) => d.slug) : ["toys", "decor"]),
     [departments]
@@ -98,7 +103,7 @@ export function StoreHome({ hero, departments = [], newArrivals = [] }) {
         ))}
       </div>
 
-      <TrustStrip title="Why Masti Mall" points={TRUST_POINTS} />
+      <TrustStrip title="Why Masti Mall" points={trustPoints} />
     </div>
   );
 }

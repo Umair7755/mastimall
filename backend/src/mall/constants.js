@@ -56,7 +56,7 @@ export function paymentAccounts() {
 }
 export const ORDER_STATUSES = ['new', 'confirmed', 'packed', 'shipped', 'delivered', 'cancelled', 'returned'];
 
-/** Free delivery at or above this subtotal (PKR). */
+/** Fallback free-delivery threshold (PKR). Live value lives in MallSetting "shipping". */
 export const FREE_SHIPPING_AT = 3000;
 
 export const SORTS = {

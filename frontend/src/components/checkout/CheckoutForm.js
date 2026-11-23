@@ -7,8 +7,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Banknote, Check, Copy, ImagePlus, Sparkles, X } from "lucide-react";
+import { AddressAutocomplete } from "@/components/checkout/AddressAutocomplete";
 import { Button } from "@/components/ui/Button";
-import { Field, Input, TextArea } from "@/components/ui/Input";
+import { Field, Input } from "@/components/ui/Input";
 import { useCheckoutSettings } from "@/hooks/useCheckoutSettings";
 import { useQuote } from "@/hooks/useQuote";
 import { signalBlacklisted } from "@/components/access/AccessGate";
@@ -106,7 +107,6 @@ export function CheckoutForm() {
   const router = useRouter();
   const receiptInputId = useId();
   const termsId = useId();
-  const citiesId = useId();
   const fileRef = useRef(null);
   const items = useCart((state) => state.items);
   const clear = useCart((state) => state.clear);
@@ -142,6 +142,7 @@ export function CheckoutForm() {
 
   const { register, setValue, watch, handleSubmit, reset, formState } = form;
   const city = watch("city");
+  const address = watch("address");
   const paymentMethod = watch("paymentMethod") || "cod";
   const advancePlan = watch("advancePlan") || "none";
   const acceptTerms = watch("acceptTerms");
@@ -348,21 +349,49 @@ export function CheckoutForm() {
                 <Input className="h-11" inputMode="tel" autoComplete="tel" {...register("phone")} />
               </Field>
               <Field compact label="City" error={formState.errors.city?.message}>
-                <Input className="h-11" list={citiesId} autoComplete="address-level2" {...register("city")} />
-              </Field>
-              <Field compact label="Landmark" hint="Optional">
-                <Input className="h-11" {...register("notes")} />
+                <div className="relative">
+                  <select
+                    className="h-11 w-full appearance-none rounded-field border-2 border-line bg-surface px-4 pr-10 text-base text-ink focus:border-brand"
+                    autoComplete="address-level2"
+                    {...register("city")}
+                  >
+                    <option value="">Select city</option>
+                    {cities.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted"
+                  >
+                    ▾
+                  </span>
+                </div>
               </Field>
             </div>
-            <datalist id={citiesId}>
-              {cities.map((item) => (
-                <option key={item} value={item} />
-              ))}
-            </datalist>
             <div className="mt-3">
-              <Field compact label="Address" error={formState.errors.address?.message}>
-                <TextArea className="min-h-[3.75rem]" rows={2} autoComplete="street-address" {...register("address")} />
-              </Field>
+              <p className="mb-1 font-display text-sm font-semibold text-ink">Address</p>
+              <AddressAutocomplete
+                value={address || ""}
+                cities={cities}
+                error={formState.errors.address?.message}
+                onChange={(next) =>
+                  setValue("address", next, { shouldDirty: true, shouldValidate: true })
+                }
+                onCity={(nextCity) => {
+                  if (!nextCity) return;
+                  setValue("city", nextCity, { shouldDirty: true, shouldValidate: true });
+                }}
+              />
+              {formState.errors.address?.message ? (
+                <p className="mt-1 text-xs text-danger">{formState.errors.address.message}</p>
+              ) : (
+                <p className="mt-1 text-xs text-ink-muted">
+                  Add house/flat no., then pick society or area
+                </p>
+              )}
             </div>
           </div>
 
@@ -374,7 +403,7 @@ export function CheckoutForm() {
               <div>
                 <h2 className="font-display text-base font-semibold text-ink">Pay some now &amp; save</h2>
                 <p className="text-xs text-ink-muted sm:text-sm">
-                  25% advance helps cover delivery (~Rs 350). Bigger advance = bigger discount on products.
+                  Bigger advance = bigger discount on products.
                 </p>
               </div>
             </div>
@@ -418,15 +447,15 @@ export function CheckoutForm() {
                       )}
                     </div>
 
-                    <div className="mt-0.5 flex items-center justify-between gap-2">
+                    <div className="mt-0.5 flex flex-col gap-1 sm:gap-1.5">
                       {save > 0 ? (
-                        <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold tracking-tight text-emerald-700 ring-1 ring-inset ring-emerald-200/80">
+                        <span className="inline-flex w-fit items-center whitespace-nowrap rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold tracking-tight text-emerald-700 ring-1 ring-inset ring-emerald-200/80">
                           Save {formatPkr(save)}
                         </span>
                       ) : (
                         <span className="text-[10px] font-medium text-ink-muted">—</span>
                       )}
-                      <span className="min-w-0 truncate text-right text-[10px] text-ink-muted">
+                      <span className="whitespace-nowrap text-[10px] text-ink-muted lg:text-[11px]">
                         Pay{" "}
                         <span className="font-display font-bold tabular-nums text-ink">
                           {formatPkr(plan.advanceAmount || 0)}

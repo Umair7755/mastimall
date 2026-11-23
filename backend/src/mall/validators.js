@@ -158,6 +158,16 @@ export const saleBannerSchema = z.object({
   message: z.string().trim().max(180).optional().default(''),
 });
 
+export const shippingSettingsSchema = z.object({
+  freeAt: z.coerce.number().int().min(0).max(1_000_000),
+  nearFee: z.coerce.number().int().min(0).max(100_000),
+  farFee: z.coerce.number().int().min(0).max(100_000),
+  nearCities: z
+    .array(z.string().trim().min(1).max(60))
+    .min(1)
+    .max(40),
+});
+
 export const orderStatusSchema = z
   .object({
     status: z.enum(ORDER_STATUSES).optional(),

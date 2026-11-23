@@ -811,7 +811,8 @@ console.log(`Seeded Toys with ${categories.length} categories and ${products.len
 console.log(`Admin login: ${adminEmail} / (see MALL_ADMIN_PASSWORD or default Admin@12345)`);
 
   const { ensureDecorCatalog } = await import('./lib/ensureDecor.js');
-  await ensureDecorCatalog();
+  // Explicit seed only — never auto-create decor samples on API boot.
+  await ensureDecorCatalog({ seedProducts: true });
 }
 
 const invokedDirectly = process.argv[1]?.endsWith('seed.js');

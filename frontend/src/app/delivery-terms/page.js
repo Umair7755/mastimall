@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeliveryChargesCopy } from "@/components/shipping/DeliveryChargesCopy";
 
 export const metadata = {
   title: "Delivery Terms",
@@ -12,7 +13,7 @@ const SECTIONS = [
   },
   {
     title: "2. Delivery charges",
-    body: "Delivery is free on orders of Rs 3,000 or more (after product discounts, before payment charges if any). For smaller orders, delivery is Rs 200 in Karachi, Lahore, Islamabad, and Rawalpindi, and Rs 250 for other cities. The final delivery fee is calculated on our server at checkout from your cart total and city — the amount shown in checkout is the fee that applies.",
+    body: null,
   },
   {
     title: "3. Delivery timelines",
@@ -61,7 +62,9 @@ export default function DeliveryTermsPage() {
         {SECTIONS.map((section) => (
           <section key={section.title} className="rounded-2xl border border-line/70 bg-white p-4 shadow-soft sm:p-5">
             <h2 className="font-display text-lg font-semibold text-ink">{section.title}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-ink-muted">{section.body}</p>
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+              {section.title === "2. Delivery charges" ? <DeliveryChargesCopy /> : section.body}
+            </p>
           </section>
         ))}
       </div>

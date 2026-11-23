@@ -1,32 +1,38 @@
 "use client";
 
+import { useMemo } from "react";
 import { FindMallRail } from "@/components/home/FindMallRail";
 import { DepartmentFindControl } from "@/components/home/DepartmentFindControl";
 import { HomeProductRail } from "@/components/home/HomeProductRail";
 import { TrustStrip } from "@/components/home/TrustStrip";
+import { useCheckoutSettings } from "@/hooks/useCheckoutSettings";
 import { buildDepartmentFinderGroups } from "@/lib/finderGroups";
+import { formatPkr } from "@/lib/format";
 import { CONTAINER } from "@/lib/layout";
-
-const TRUST_POINTS = [
-  {
-    title: "Flexible payment",
-    text: "COD, JazzCash, or EasyPaisa. Wallet orders need a receipt at checkout.",
-  },
-  {
-    title: "Prices checked again",
-    text: "Totals are calculated on our server from live price and stock.",
-  },
-  {
-    title: "Free delivery from Rs 3,000",
-    text: "Under that, delivery is Rs 200 in big cities and Rs 250 elsewhere.",
-  },
-];
 
 /**
  * Department landing — mobile: title + Find button (sheet); products start immediately.
  * Desktop: keeps the full Find rail.
  */
 export function DepartmentHome({ department, all = [], newArrivals = [] }) {
+  const delivery = useCheckoutSettings();
+  const trustPoints = useMemo(
+    () => [
+      {
+        title: "Flexible payment",
+        text: "COD, JazzCash, or EasyPaisa. Wallet orders need a receipt at checkout.",
+      },
+      {
+        title: "Prices checked again",
+        text: "Totals are calculated on our server from live price and stock.",
+      },
+      {
+        title: `Free delivery from ${formatPkr(delivery.freeShippingAt)}`,
+        text: `Under that, delivery is ${formatPkr(delivery.nearFee)} in big cities and ${formatPkr(delivery.farFee)} elsewhere.`,
+      },
+    ],
+    [delivery.farFee, delivery.freeShippingAt, delivery.nearFee]
+  );
   const slug = department?.slug || "toys";
   const themeKey = department?.themeKey || slug;
   const isDecor = slug === "decor" || themeKey === "decor";
@@ -105,7 +111,7 @@ export function DepartmentHome({ department, all = [], newArrivals = [] }) {
         ) : null}
       </div>
 
-      <TrustStrip title="Why Masti Mall" points={TRUST_POINTS} />
+      <TrustStrip title="Why Masti Mall" points={trustPoints} />
     </div>
   );
 }

@@ -9,7 +9,8 @@ import { NotifyForm } from "@/components/product/NotifyForm";
 import { PriceTag } from "@/components/product/PriceTag";
 import { QtyStepper } from "@/components/product/QtyStepper";
 import { useAddToCart } from "@/hooks/useAddToCart";
-import { DELIVERY, ageLabel } from "@/lib/constants";
+import { useCheckoutSettings } from "@/hooks/useCheckoutSettings";
+import { ageLabel } from "@/lib/constants";
 import { formatPkr } from "@/lib/format";
 import { productPath } from "@/lib/paths";
 
@@ -19,6 +20,7 @@ const BUYBAR_H = "6.5rem";
 export function BuyBox({ product }) {
   const [qty, setQty] = useState(1);
   const addToCart = useAddToCart();
+  const delivery = useCheckoutSettings();
   const href = productPath(product);
   const adult = product.ageBands?.every((band) => band === "12-plus");
   const max = Math.min(20, product.stock || 20);
@@ -66,9 +68,9 @@ export function BuyBox({ product }) {
       )}
 
       <div className="rounded-card bg-brand-soft p-4 text-ink">
-        <p>COD, JazzCash &amp; EasyPaisa. Free delivery from {formatPkr(DELIVERY.freeAt)}.</p>
+        <p>COD, JazzCash &amp; EasyPaisa. Free delivery from {formatPkr(delivery.freeShippingAt)}.</p>
         <p className="mt-1 text-sm">
-          {formatPkr(DELIVERY.nearFee)} in {DELIVERY.nearCities}. {formatPkr(DELIVERY.farFee)} in other cities.
+          {formatPkr(delivery.nearFee)} in {delivery.nearCitiesLabel}. {formatPkr(delivery.farFee)} in other cities.
         </p>
         {product.fragile ? <p className="mt-2">This one is packed with extra care.</p> : null}
       </div>

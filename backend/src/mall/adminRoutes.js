@@ -18,6 +18,7 @@ import { pingRevalidate } from './lib/revalidate.js';
 import { bumpOrdersRevision } from './lib/catalogRevision.js';
 import { AGE_BANDS, AUDIENCES, ORDER_STATUSES, RESERVED_SLUGS } from './constants.js';
 import { DEFAULT_SALE_BANNER } from './lib/saleBanner.js';
+import { loadShippingSettings, saveShippingSettings } from './lib/shipping.js';
 import {
   adminReviewSchema,
   adminReviewUpdateSchema,
@@ -27,6 +28,7 @@ import {
   loginSchema,
   productSchema,
   saleBannerSchema,
+  shippingSettingsSchema,
   orderStatusSchema,
   supportAdminStatusSchema,
   supportReplySchema,
@@ -1393,6 +1395,25 @@ admin.put(
     await MallSetting.findOneAndUpdate({ key: 'saleBanner' }, { value: next }, { upsert: true });
     pingRevalidate(['home']);
     res.json({ banner: next });
+  })
+);
+
+admin.get(
+  '/admin/settings/shipping',
+  requireMallAdmin,
+  asyncHandler(async (_req, res) => {
+    res.json({ shipping: await loadShippingSettings() });
+  })
+);
+
+admin.put(
+  '/admin/settings/shipping',
+  requireMallAdmin,
+  validate(shippingSettingsSchema),
+  asyncHandler(async (req, res) => {
+    const shipping = await saveShippingSettings(req.body);
+    pingRevalidate(['home', 'products']);
+    res.json({ shipping });
   })
 );
 

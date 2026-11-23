@@ -13,6 +13,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   Store,
+  Truck,
   Users,
 } from "lucide-react";
 import { adminFetch } from "@/lib/admin";
@@ -27,6 +28,7 @@ const NAV = [
   { href: "/admin/support", label: "Support", icon: MessageCircle, badgeKey: "supportUnread" },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/blocklist", label: "Blocklist", icon: Ban },
+  { href: "/admin/shipping", label: "Shipping", icon: Truck },
   { href: "/admin/banner", label: "Sale banner", icon: ImageIcon },
 ];
 

@@ -17,7 +17,7 @@ import { presentCategory, presentDepartment, presentOrder, presentProduct } from
 import { pingRevalidate } from './lib/revalidate.js';
 import { readStoreRevisions } from './lib/catalogRevision.js';
 import { isPkMobile, normalizePhone } from './lib/phone.js';
-import { shippingFee } from './lib/shipping.js';
+import { loadShippingSettings, shippingFee } from './lib/shipping.js';
 import { computeAdvancePricing, listAdvanceQuotes, normalizeAdvancePlan } from './lib/advancePricing.js';
 import { AGE_BANDS, AUDIENCES, RESERVED_SLUGS, SORTS, paymentAccounts } from './constants.js';
 import { resolvePriceFilter } from './lib/budgets.js';
@@ -557,8 +557,12 @@ mall.get(
   '/settings/checkout',
   asyncHandler(async (_req, res) => {
     const accounts = paymentAccounts();
+    const shipping = await loadShippingSettings();
     res.json({
-      freeShippingAt: 3000,
+      freeShippingAt: shipping.freeAt,
+      nearFee: shipping.nearFee,
+      farFee: shipping.farFee,
+      nearCities: shipping.nearCities,
       paymentMethods: [accounts.cod, accounts.jazzcash, accounts.easypaisa],
       cities: [
         'Karachi',
@@ -793,7 +797,8 @@ mall.post(
     }
 
     const subtotal = lines.reduce((sum, line) => sum + line.lineTotal, 0);
-    const fee = shippingFee(subtotal, req.body.city || 'Other');
+    const shipping = await loadShippingSettings();
+    const fee = await shippingFee(subtotal, req.body.city || 'Other');
     const advancePlan = normalizeAdvancePlan(req.body.advancePlan);
     const pricing = computeAdvancePricing({
       subtotal,
@@ -816,7 +821,10 @@ mall.post(
       pricing,
       plans,
       problems,
-      freeShippingAt: 3000,
+      freeShippingAt: shipping.freeAt,
+      nearFee: shipping.nearFee,
+      farFee: shipping.farFee,
+      nearCities: shipping.nearCities,
     });
   })
 );
@@ -876,7 +884,7 @@ mall.post(
     }
 
     const subtotal = lines.reduce((sum, line) => sum + line.unitPrice * line.qty, 0);
-    const fee = shippingFee(subtotal, req.body.customer.city);
+    const fee = await shippingFee(subtotal, req.body.customer.city);
     const advancePlan = normalizeAdvancePlan(req.body.advancePlan);
     const pricing = computeAdvancePricing({
       subtotal,

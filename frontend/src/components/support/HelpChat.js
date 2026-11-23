@@ -13,38 +13,46 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import { useCheckoutSettings } from "@/hooks/useCheckoutSettings";
 import { apiFetch } from "@/lib/browser";
 import { cn } from "@/lib/cn";
+import { formatPkr } from "@/lib/format";
 
 const STORAGE_KEY = "mastimall-support-thread";
 const POLL_MS = 3000;
 
-const HELP_STEPS = [
-  {
-    id: "order",
-    title: "Track an order",
-    text: "Have your order number and the phone used at checkout.",
-    href: "/track",
-    icon: Package,
-    steps: ["Open Track order", "Enter order number + phone", "See live status"],
-  },
-  {
-    id: "shipping",
-    title: "Delivery & shipping",
-    text: "Free delivery from Rs 3,000 across Pakistan.",
-    href: "/search",
-    icon: Truck,
-    steps: ["Under Rs 3,000: city fee applies", "Big cities usually 2–4 days", "You’ll see courier updates on the order page"],
-  },
-  {
-    id: "pay",
-    title: "Payments",
-    text: "COD, JazzCash, or EasyPaisa — wallet orders need a receipt.",
-    href: "/cart",
-    icon: Wallet,
-    steps: ["Add toys to cart", "Choose payment at checkout", "Upload receipt for JazzCash / EasyPaisa"],
-  },
-];
+function buildHelpSteps(delivery) {
+  return [
+    {
+      id: "order",
+      title: "Track an order",
+      text: "Have your order number and the phone used at checkout.",
+      href: "/track",
+      icon: Package,
+      steps: ["Open Track order", "Enter order number + phone", "See live status"],
+    },
+    {
+      id: "shipping",
+      title: "Delivery & shipping",
+      text: `Free delivery from ${formatPkr(delivery.freeShippingAt)} across Pakistan.`,
+      href: "/delivery-terms",
+      icon: Truck,
+      steps: [
+        `Under ${formatPkr(delivery.freeShippingAt)}: city fee applies`,
+        `Near cities ${formatPkr(delivery.nearFee)} · others ${formatPkr(delivery.farFee)}`,
+        "You’ll see courier updates on the order page",
+      ],
+    },
+    {
+      id: "pay",
+      title: "Payments",
+      text: "COD, JazzCash, or EasyPaisa — wallet orders need a receipt.",
+      href: "/cart",
+      icon: Wallet,
+      steps: ["Add toys to cart", "Choose payment at checkout", "Upload receipt for JazzCash / EasyPaisa"],
+    },
+  ];
+}
 
 function loadSaved() {
   try {
@@ -108,6 +116,8 @@ function useKeyboardSafeSheet(active) {
 }
 
 export function HelpChat() {
+  const delivery = useCheckoutSettings();
+  const helpSteps = useMemo(() => buildHelpSteps(delivery), [delivery]);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("help");
   const [guide, setGuide] = useState(null);
@@ -336,7 +346,7 @@ export function HelpChat() {
                       <p className="px-1 text-xs font-semibold uppercase tracking-[0.12em] text-ink-muted">
                         Pick a path
                       </p>
-                      {HELP_STEPS.map((item) => {
+                      {helpSteps.map((item) => {
                         const Icon = item.icon;
                         return (
                           <button
