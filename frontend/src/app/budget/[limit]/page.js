@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { BudgetTiles } from "@/components/home/BudgetTiles";
 import { ProductListing } from "@/components/catalog/ProductListing";
 import { ListingSkeleton } from "@/components/ui/Skeleton";
 import { BUDGETS, DEFAULT_FILTERS, budgetBySlug, budgetPriceRange } from "@/lib/constants";
@@ -64,27 +63,24 @@ async function BudgetContent({ params, searchParams }) {
         ? `Toys ${match.label.toLowerCase()}`
         : match.label;
   return (
-    <>
-      <BudgetTiles title="Pick a budget" />
-      <ProductListing
-        title={title}
-        pathname={`/budget/${limit}`}
-        searchParams={query}
-        result={result}
-        filters={DEFAULT_FILTERS}
-        categories={categories}
-        problem={problem}
-        breadcrumbs={[
-          { label: "Home", href: "/" },
-          ...(department === "decor"
-            ? [{ label: "Decor", href: "/decor" }]
-            : department === "toys"
-              ? [{ label: "Toys", href: "/toys" }]
-              : []),
-          { label: match.label, href: `/budget/${limit}${department ? `?department=${department}` : ""}` },
-        ]}
-      />
-    </>
+    <ProductListing
+      title={title}
+      pathname={`/budget/${limit}`}
+      searchParams={query}
+      result={result}
+      filters={DEFAULT_FILTERS}
+      categories={categories}
+      problem={problem}
+      breadcrumbs={[
+        { label: "Home", href: "/" },
+        ...(department === "decor"
+          ? [{ label: "Decor", href: "/decor" }]
+          : department === "toys"
+            ? [{ label: "Toys", href: "/toys" }]
+            : []),
+        { label: match.label, href: `/budget/${limit}${department ? `?department=${department}` : ""}` },
+      ]}
+    />
   );
 }
 

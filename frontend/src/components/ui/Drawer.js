@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
+import { cn } from "@/lib/cn";
 
 export function Drawer({ open, onClose, title, side = "right", children, footer }) {
   const reduce = useReducedMotion();
@@ -23,49 +24,66 @@ export function Drawer({ open, onClose, title, side = "right", children, footer 
 
   const hidden = side === "bottom" ? { y: "100%" } : { x: "100%" };
   const shown = side === "bottom" ? { y: 0 } : { x: 0 };
+  const isBottom = side === "bottom";
 
   return (
     <AnimatePresence>
       {open ? (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-[80]">
           <motion.div
-            className="absolute inset-0 bg-ink/40"
+            className="absolute inset-0 bg-ink/50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: reduce ? 0.01 : 0.2 }}
             onClick={onClose}
+            aria-hidden="true"
           />
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className={
-              side === "bottom"
-                ? "absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-card bg-surface"
-                : "absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-surface"
-            }
+            className={cn(
+              "absolute flex flex-col overflow-hidden bg-white shadow-[0_-12px_40px_rgba(15,23,42,0.2)]",
+              isBottom
+                ? "inset-x-0 bottom-0 max-h-[min(92vh,760px)] rounded-t-[1.35rem]"
+                : "inset-y-0 right-0 w-full max-w-md"
+            )}
             initial={hidden}
             animate={shown}
             exit={hidden}
             transition={reduce ? { duration: 0.01 } : { type: "spring", duration: 0.35, bounce: 0 }}
           >
-            <div className="flex items-center justify-between gap-3 px-4 py-3">
-              <h2 className="font-display text-2xl">{title}</h2>
-              <button
-                type="button"
-                onClick={onClose}
-                className="inline-flex min-h-12 items-center gap-2 rounded-full px-3"
-              >
-                <X aria-hidden="true" />
-                Close
-              </button>
+            <div className="shrink-0 border-b border-slate-100 bg-white">
+              {isBottom ? (
+                <div className="flex justify-center pb-1 pt-3" aria-hidden="true">
+                  <span className="h-1 w-9 rounded-full bg-slate-300" />
+                </div>
+              ) : null}
+
+              <div className="flex items-center gap-3 px-4 pb-3 pt-1">
+                <h2 className="min-w-0 flex-1 truncate font-display text-xl font-semibold leading-none text-ink">
+                  {title}
+                </h2>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close filters"
+                  className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200 active:scale-95"
+                >
+                  <X size={18} strokeWidth={2.5} aria-hidden="true" />
+                </button>
+              </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">{children}</div>
+
+            <div className="min-h-0 flex-1 overflow-auto overscroll-contain bg-white px-4 py-3">
+              {children}
+            </div>
+
             {footer ? (
               <div
-                className="border-t border-line bg-surface p-4"
-                style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}
+                className="shrink-0 border-t border-slate-100 bg-white px-4 pt-3"
+                style={{ paddingBottom: "calc(0.85rem + env(safe-area-inset-bottom, 0px))" }}
               >
                 {footer}
               </div>

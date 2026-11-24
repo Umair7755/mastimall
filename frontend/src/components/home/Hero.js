@@ -58,34 +58,42 @@ export function Hero({ title, text, entries, findHref = "#find", mood = "mall" }
             </h1>
             {text ? <p className="mt-2 max-w-md text-sm text-ink-muted sm:mt-3 sm:text-lg">{text}</p> : null}
             <div
-              className={`mt-3 grid gap-2 sm:mt-5 sm:gap-3 ${
-                actionCount >= 3 ? "sm:grid-cols-3" : actionCount === 2 ? "sm:grid-cols-2" : "sm:grid-cols-1 sm:max-w-xs"
+              className={`mt-3 grid gap-1.5 sm:mt-5 sm:gap-3 ${
+                actionCount >= 3
+                  ? "grid-cols-3"
+                  : actionCount === 2
+                    ? "grid-cols-2 sm:max-w-md"
+                    : "grid-cols-1 sm:max-w-xs"
               }`}
             >
               {entries.who ? (
                 <ButtonLink
                   href={findHref}
                   variant="secondary"
-                  className="w-full border-2 border-ink/10 bg-white"
+                  className="h-11 w-full min-w-0 gap-1 border-2 border-ink/10 bg-white px-2 text-[12px] sm:h-12 sm:gap-2 sm:px-4 sm:text-sm"
                 >
-                  <Users aria-hidden="true" size={18} />
-                  For who?
+                  <Users aria-hidden="true" className="size-3.5 shrink-0 sm:size-[18px]" />
+                  <span className="truncate">Who</span>
                 </ButtonLink>
               ) : null}
               {entries.age ? (
-                <ButtonLink href={findHref} variant="sun" className="w-full">
-                  <Cake aria-hidden="true" size={18} />
-                  What age?
+                <ButtonLink
+                  href={findHref}
+                  variant="sun"
+                  className="h-11 w-full min-w-0 gap-1 px-2 text-[12px] sm:h-12 sm:gap-2 sm:px-4 sm:text-sm"
+                >
+                  <Cake aria-hidden="true" className="size-3.5 shrink-0 sm:size-[18px]" />
+                  <span className="truncate">Age</span>
                 </ButtonLink>
               ) : null}
               {entries.budget ? (
                 <ButtonLink
                   href={findHref}
                   variant="primary"
-                  className="w-full bg-[#059669] hover:bg-[#047857]"
+                  className="h-11 w-full min-w-0 gap-1 bg-[#059669] px-2 text-[12px] hover:bg-[#047857] sm:h-12 sm:gap-2 sm:px-4 sm:text-sm"
                 >
-                  <Wallet aria-hidden="true" size={18} />
-                  {entries.who || entries.age ? "Budget" : "Shop by budget"}
+                  <Wallet aria-hidden="true" className="size-3.5 shrink-0 sm:size-[18px]" />
+                  <span className="truncate">Budget</span>
                 </ButtonLink>
               ) : null}
             </div>
