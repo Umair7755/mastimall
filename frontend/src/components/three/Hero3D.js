@@ -6,47 +6,71 @@ import { useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { useCan3D } from "@/hooks/useCan3D";
 import { useInView } from "@/hooks/useInView";
+import { usePageVisible } from "@/hooks/usePageVisible";
+import { cn } from "@/lib/cn";
 
 const HeroScene = dynamic(() => import("./HeroScene"), { ssr: false });
+
+function HeroPoster({ reduceMotion, mobile }) {
+  return (
+    <div className="absolute inset-0">
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-4 rounded-[1.75rem] bg-gradient-to-br from-white/60 via-transparent to-brand/10",
+          mobile ? "blur-md" : "blur-xl"
+        )}
+        aria-hidden="true"
+      />
+      <motion.div
+        className="absolute inset-0"
+        animate={
+          reduceMotion || mobile
+            ? undefined
+            : { y: [0, -6, 0] }
+        }
+        transition={
+          reduceMotion || mobile
+            ? undefined
+            : { duration: 7, repeat: Infinity, ease: "easeInOut" }
+        }
+      >
+        <Image
+          src="/posters/hero.svg"
+          alt="Toys and home décor floating together"
+          fill
+          priority
+          sizes="(min-width: 1024px) 560px, 90vw"
+          className="object-contain drop-shadow-lg"
+        />
+      </motion.div>
+    </div>
+  );
+}
 
 export default function Hero3D() {
   const can3D = useCan3D();
   const frame = useRef(null);
   const visible = useInView(frame);
+  const pageVisible = usePageVisible();
   const reduceMotion = useReducedMotion();
+  const run3D = can3D && visible && pageVisible;
 
   return (
     <motion.div
       ref={frame}
-      className="hero-stage relative h-[28vh] min-h-40 w-full overflow-hidden sm:min-h-48 lg:h-[min(520px,52vh)] lg:min-h-[420px]"
-      style={{ perspective: 900 }}
-      initial={reduceMotion ? false : { opacity: 0, rotateX: 8, y: 18 }}
-      animate={{ opacity: 1, rotateX: 0, y: 0 }}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      className="hero-stage relative h-[26vh] min-h-36 w-full overflow-hidden sm:min-h-44 lg:h-[min(520px,52vh)] lg:min-h-[420px]"
+      style={can3D ? { perspective: 900 } : undefined}
+      initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="pointer-events-none absolute inset-6 rounded-[2rem] bg-gradient-to-br from-white/50 via-transparent to-brand/10 blur-xl" />
-
       {!can3D ? (
-        <motion.div
-          className="absolute inset-0"
-          animate={reduceMotion ? undefined : { y: [0, -8, 0], rotate: [0, 1.2, 0] }}
-          transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <Image
-            src="/posters/hero.svg"
-            alt="Toys and home décor floating together"
-            fill
-            priority
-            sizes="(min-width: 1024px) 560px, 90vw"
-            className="object-contain drop-shadow-lg"
-          />
-        </motion.div>
+        <HeroPoster reduceMotion={reduceMotion} mobile />
       ) : (
         <div className="absolute inset-0" style={{ transformStyle: "preserve-3d" }}>
-          <HeroScene active={visible} />
+          {run3D ? <HeroScene active /> : <HeroPoster reduceMotion={reduceMotion} mobile={false} />}
         </div>
       )}
-
     </motion.div>
   );
 }

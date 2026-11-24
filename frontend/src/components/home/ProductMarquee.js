@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ToyImage } from "@/components/product/ToyImage";
 import { useAddToCart } from "@/hooks/useAddToCart";
+import { usePageVisible } from "@/hooks/usePageVisible";
 import { formatPkr } from "@/lib/format";
 import { productPath } from "@/lib/paths";
 import { cn } from "@/lib/cn";
@@ -25,8 +26,8 @@ function MarqueeProductCard({ product }) {
           <ToyImage
             src={image?.url}
             alt={image?.alt || product.title}
-            sizes="220px"
-            className="object-contain p-3 transition duration-300 group-hover:scale-110 sm:p-4"
+            sizes="(max-width: 640px) 156px, 220px"
+            className="object-contain p-3 transition duration-300 group-hover:scale-105 sm:p-4"
           />
           {onSale || product.isNew ? (
             <span
@@ -69,11 +70,38 @@ function MarqueeProductCard({ product }) {
   );
 }
 
-/** Mall picks — swipe + always-visible arrows. */
+/**
+ * Mall picks rail.
+ * Mobile: swipe + arrows only (no continuous timer — major heat fix).
+ * Desktop: gentle auto-nudge every few seconds, paused off-screen / hidden tab.
+ */
 export function ProductMarquee({ products = [] }) {
   const reduceMotion = useReducedMotion();
+  const pageVisible = usePageVisible();
   const scroller = useRef(null);
+  const rootRef = useRef(null);
   const pauseUntil = useRef(0);
+  const [inView, setInView] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setIsDesktop(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node || !("IntersectionObserver" in window)) return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.12 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   function scrollBy(dir) {
     const node = scroller.current;
@@ -87,38 +115,40 @@ export function ProductMarquee({ products = [] }) {
   }
 
   useEffect(() => {
-    if (reduceMotion) return undefined;
+    // No continuous scroll on mobile — biggest JS heat win.
+    if (reduceMotion || !isDesktop || !pageVisible || !inView) return undefined;
     const node = scroller.current;
     if (!node) return undefined;
 
-    // Same gentle auto-slide on mobile + desktop (pause on touch / wheel).
-    const step = window.matchMedia("(min-width: 1024px)").matches ? 1.2 : 0.85;
     const timer = window.setInterval(() => {
       if (document.visibilityState === "hidden") return;
       if (Date.now() < pauseUntil.current) return;
       if (node.scrollWidth <= node.clientWidth + 8) return;
       const max = node.scrollWidth - node.clientWidth;
-      const next = node.scrollLeft + step;
-      node.scrollLeft = next >= max - 2 ? 0 : next;
-    }, 32);
+      const next = node.scrollLeft + Math.round(node.clientWidth * 0.55);
+      node.scrollTo({
+        left: next >= max - 8 ? 0 : next,
+        behavior: "smooth",
+      });
+    }, 3800);
 
     function pause() {
-      pauseUntil.current = Date.now() + 10000;
+      pauseUntil.current = Date.now() + 12000;
     }
 
     node.addEventListener("pointerdown", pause, { passive: true });
     node.addEventListener("wheel", pause, { passive: true });
-    node.addEventListener("touchstart", pause, { passive: true });
 
     return () => {
       window.clearInterval(timer);
       node.removeEventListener("pointerdown", pause);
       node.removeEventListener("wheel", pause);
-      node.removeEventListener("touchstart", pause);
     };
-  }, [reduceMotion, products]);
+  }, [reduceMotion, isDesktop, pageVisible, inView, products]);
 
   if (!products.length) return null;
+
+  const list = isDesktop ? products : products.slice(0, 12);
 
   const arrowClass =
     "absolute top-[38%] z-20 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full " +
@@ -126,13 +156,13 @@ export function ProductMarquee({ products = [] }) {
     "ring-1 ring-ink/10 transition active:scale-95 sm:h-10 sm:w-10 lg:h-11 lg:w-11";
 
   return (
-    <div className="relative -mx-3 py-1 sm:mx-0">
+    <div ref={rootRef} className="relative -mx-3 py-1 sm:mx-0">
       <div
         ref={scroller}
         className="no-scrollbar flex gap-3 overflow-x-auto overscroll-x-contain px-3 pb-1 sm:gap-4 sm:px-0"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
-        {products.map((product) => (
+        {list.map((product) => (
           <MarqueeProductCard key={product.id} product={product} />
         ))}
       </div>
@@ -140,7 +170,7 @@ export function ProductMarquee({ products = [] }) {
         type="button"
         aria-label="Previous"
         onClick={() => {
-          pauseUntil.current = Date.now() + 8000;
+          pauseUntil.current = Date.now() + 10000;
           scrollBy(-1);
         }}
         className={cn(arrowClass, "left-0")}
@@ -151,7 +181,7 @@ export function ProductMarquee({ products = [] }) {
         type="button"
         aria-label="Next"
         onClick={() => {
-          pauseUntil.current = Date.now() + 8000;
+          pauseUntil.current = Date.now() + 10000;
           scrollBy(1);
         }}
         className={cn(arrowClass, "right-0")}

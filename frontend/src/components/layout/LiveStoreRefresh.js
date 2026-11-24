@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-const POLL_MS = 12000;
+const POLL_MS = 45000;
 export const ORDERS_UPDATED_EVENT = "mastimall:orders-updated";
 
 /**

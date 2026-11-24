@@ -204,9 +204,9 @@ export default function HeroScene({ active = true }) {
   return (
     <Canvas
       frameloop={active ? "always" : "never"}
-      dpr={[1, 1.6]}
+      dpr={[1, 1.25]}
       camera={{ position: [0, 0.15, 6.2], fov: 38 }}
-      gl={{ antialias: true, alpha: true, premultipliedAlpha: true }}
+      gl={{ antialias: false, alpha: true, premultipliedAlpha: true, powerPreference: "high-performance" }}
       onCreated={({ gl }) => {
         gl.setClearColor(0x000000, 0);
         gl.domElement.style.background = "transparent";

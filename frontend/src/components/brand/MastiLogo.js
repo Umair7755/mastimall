@@ -37,8 +37,7 @@ function loadLivingLogoScript() {
 }
 
 /**
- * Living Masti Mall logo.
- * Default: living wordmark + “Many Moods, One Mall” (no category tagline).
+ * Living Masti Mall logo (same brand mark on mobile + desktop).
  */
 export function MastiLogo({
   className,
@@ -79,8 +78,14 @@ export function MastiLogo({
     };
   }, [slogan, orbit, tagline, theme, mode]);
 
-  // Header crop (~orbit off) is wider than tall once slogan + category line are included.
-  const ratio = mode === "icon" ? 1 : slogan !== "none" && tagline ? 760 / 318 : slogan !== "none" ? 760 / 292 : 760 / 240;
+  const ratio =
+    mode === "icon"
+      ? 1
+      : slogan !== "none" && tagline
+        ? 760 / 318
+        : slogan !== "none"
+          ? 760 / 292
+          : 760 / 240;
   const width = mode === "icon" ? height : Math.round(height * ratio);
 
   return (

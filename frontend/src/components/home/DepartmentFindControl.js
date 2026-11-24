@@ -35,7 +35,7 @@ export function DepartmentFindControl({
       /* ignore */
     }
     setShowCue(true);
-    const timer = window.setTimeout(() => setShowCue(false), 14000);
+    const timer = window.setTimeout(() => setShowCue(false), 5000);
     return () => window.clearTimeout(timer);
   }, [showHandCue]);
 

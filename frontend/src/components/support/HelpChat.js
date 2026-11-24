@@ -200,8 +200,9 @@ export function HelpChat() {
       }
     }
 
+    // Poll often only while chat is open; quiet background check when closed.
     poll();
-    const timer = window.setInterval(poll, POLL_MS);
+    const timer = window.setInterval(poll, open ? POLL_MS : POLL_MS * 8);
     return () => {
       cancelled = true;
       window.clearInterval(timer);

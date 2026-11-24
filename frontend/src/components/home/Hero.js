@@ -20,8 +20,8 @@ export function Hero({ title, text, entries, findHref = "#find", mood = "mall" }
   return (
     <section className={`${CONTAINER} py-2 lg:py-4`}>
       <div className={`relative overflow-hidden rounded-[1.5rem] ${shell} p-3 sm:p-5 lg:p-6`}>
-        <div className="pointer-events-none absolute -left-16 top-0 h-48 w-48 rounded-full bg-sun/40 blur-3xl" />
-        <div className="pointer-events-none absolute -right-10 bottom-0 h-56 w-56 rounded-full bg-brand/25 blur-3xl" />
+        <div className="pointer-events-none absolute -left-16 top-0 hidden h-48 w-48 rounded-full bg-sun/40 blur-3xl lg:block" />
+        <div className="pointer-events-none absolute -right-10 bottom-0 hidden h-56 w-56 rounded-full bg-brand/25 blur-3xl lg:block" />
 
         <div className="relative grid items-center gap-3 sm:gap-4 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8">
           <div className="order-2 lg:order-2">

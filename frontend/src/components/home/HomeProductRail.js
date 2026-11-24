@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Flame, ShoppingBag, Sparkles, Sofa } from "lucide-react";
 import { ProductMarquee } from "@/components/home/ProductMarquee";
 import { ProductGrid } from "@/components/product/ProductGrid";
+import { LazyMount } from "@/components/ui/LazyMount";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 /** Compact row card widths (desktop / tablet carousels). */
@@ -153,8 +154,14 @@ export function HomeProductRail({
       >
         {mode === "marquee" ? (
           <>
-            <div className="pointer-events-none absolute -left-10 top-0 h-28 w-28 rounded-full bg-sun/25 blur-3xl" aria-hidden="true" />
-            <div className="pointer-events-none absolute -right-8 bottom-0 h-32 w-32 rounded-full bg-brand/15 blur-3xl" aria-hidden="true" />
+            <div
+              className="pointer-events-none absolute -left-10 top-0 hidden h-28 w-28 rounded-full bg-sun/25 blur-3xl lg:block"
+              aria-hidden="true"
+            />
+            <div
+              className="pointer-events-none absolute -right-8 bottom-0 hidden h-32 w-32 rounded-full bg-brand/15 blur-3xl lg:block"
+              aria-hidden="true"
+            />
           </>
         ) : (
           <div
@@ -180,42 +187,44 @@ export function HomeProductRail({
             />
           </div>
 
-          {mode === "marquee" ? (
-            <ProductMarquee products={products} />
-          ) : mobileGrid ? (
-            <>
-              <div className="px-3 lg:hidden">
-                <ProductGrid products={mobileItems} layout="grid" hot={!!meta.hot} />
-                {products.length > mobileItems.length ? (
-                  <Link
-                    href={moreHref || meta.moreHref}
-                    className="mt-3 flex min-h-11 items-center justify-center rounded-xl border border-ink/10 bg-white text-sm font-semibold text-ink shadow-sm"
-                  >
-                    See all {products.length}+
-                  </Link>
-                ) : null}
-              </div>
-              <div className="hidden lg:block">
+          <LazyMount minHeight={mode === "marquee" ? 280 : 220} rootMargin="280px 0px">
+            {mode === "marquee" ? (
+              <ProductMarquee products={products} />
+            ) : mobileGrid ? (
+              <>
+                <div className="px-3 lg:hidden">
+                  <ProductGrid products={mobileItems} layout="grid" hot={!!meta.hot} />
+                  {products.length > mobileItems.length ? (
+                    <Link
+                      href={moreHref || meta.moreHref}
+                      className="mt-3 flex min-h-11 items-center justify-center rounded-xl border border-ink/10 bg-white text-sm font-semibold text-ink shadow-sm"
+                    >
+                      See all {products.length}+
+                    </Link>
+                  ) : null}
+                </div>
+                <div className="hidden lg:block">
+                  <ProductGrid
+                    products={products}
+                    layout="row"
+                    hot={!!meta.hot}
+                    itemClassName={useCompact ? COMPACT_ROW : undefined}
+                    dense={useCompact}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className={mode === "row" ? "sm:px-0" : "px-3 sm:px-0"}>
                 <ProductGrid
                   products={products}
-                  layout="row"
+                  layout={mode === "row" ? "row" : "grid"}
                   hot={!!meta.hot}
                   itemClassName={useCompact ? COMPACT_ROW : undefined}
                   dense={useCompact}
                 />
               </div>
-            </>
-          ) : (
-            <div className={mode === "row" ? "sm:px-0" : "px-3 sm:px-0"}>
-              <ProductGrid
-                products={products}
-                layout={mode === "row" ? "row" : "grid"}
-                hot={!!meta.hot}
-                itemClassName={useCompact ? COMPACT_ROW : undefined}
-                dense={useCompact}
-              />
-            </div>
-          )}
+            )}
+          </LazyMount>
         </div>
       </div>
     </section>
