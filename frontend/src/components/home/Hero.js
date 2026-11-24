@@ -1,103 +1,91 @@
-import { Cake, Sparkles, Users, Wallet } from "lucide-react";
-import { ButtonLink } from "@/components/ui/Button";
+"use client";
+
 import Hero3D from "@/components/three/Hero3D";
 import { Hero3DBoundary } from "@/components/three/Hero3DBoundary";
+import { MobileHeroArt } from "@/components/home/MobileHeroArt";
 import { CONTAINER } from "@/lib/layout";
 
-export function Hero({ title, text, entries, findHref = "#find", mood = "mall" }) {
+/** Split "Toys + décor. Full masti." into clean lines — no orphan period. */
+function Headline({ headline, highlightDecor, className }) {
+  const raw = String(headline || "").trim();
+  const lines = raw
+    .replace(/\.\s*$/, "")
+    .split(/\.\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const parts = lines.length > 1 ? lines : [raw.replace(/\.\s*$/, "") || raw];
+
+  return (
+    <h1 className={className}>
+      {parts.map((line, i) => (
+        <span key={i} className={i > 0 ? "mt-0.5 block" : "block"}>
+          {highlightDecor
+            ? line.split(/(décor|decor)/i).map((part, index) =>
+                /^(décor|decor)$/i.test(part) ? (
+                  <span key={index} className="relative inline-block text-[#db2777]">
+                    {part}
+                    <span
+                      className="absolute inset-x-0 -bottom-0.5 h-1.5 rounded-full bg-[#fbcfe8]/55"
+                      aria-hidden="true"
+                    />
+                  </span>
+                ) : (
+                  <span key={index}>{part}</span>
+                )
+              )
+            : line}
+        </span>
+      ))}
+    </h1>
+  );
+}
+
+export function Hero({ title, text, mood = "mall" }) {
   const headline = String(title || "Toys + décor. Full masti.");
   const highlightDecor = /décor|decor/i.test(headline) || mood === "decor";
-  const actionCount = [entries?.who, entries?.age, entries?.budget].filter(Boolean).length;
-  const shell =
-    mood === "decor"
-      ? "bg-gradient-to-br from-[#ecfdf5] via-[#f0fdfa] to-[#e0f2fe]"
-      : mood === "toys"
-        ? "bg-gradient-to-br from-[#eef0ff] via-[#fff7ed] to-[#ffe4e6]"
-        : "bg-gradient-to-br from-[#ffe8c8] via-[#eef0ff] to-[#ffd6e5]";
-  const badge =
-    mood === "decor" ? "Home décor" : mood === "toys" ? "Play shelf" : "Toys & home décor";
+  const support = text || "Bacchon ke toys aur ghar ka décor — dono ek jagah.";
 
   return (
     <section className={`${CONTAINER} py-2 lg:py-4`}>
-      <div className={`relative overflow-hidden rounded-[1.5rem] ${shell} p-3 sm:p-5 lg:p-6`}>
-        <div className="pointer-events-none absolute -left-16 top-0 hidden h-48 w-48 rounded-full bg-sun/40 blur-3xl lg:block" />
-        <div className="pointer-events-none absolute -right-10 bottom-0 hidden h-56 w-56 rounded-full bg-brand/25 blur-3xl lg:block" />
+      {/* Mobile — keep compact split */}
+      <div className="relative isolate overflow-hidden rounded-[1.35rem] bg-gradient-to-br from-[#ffe8c8] via-[#fff1e0] to-[#fce7f3] lg:hidden">
+        <div
+          className="pointer-events-none absolute -left-10 top-0 h-28 w-28 rounded-full bg-sun/35 blur-2xl"
+          aria-hidden="true"
+        />
+        <div className="relative grid grid-cols-[1.15fr_0.85fr] items-center gap-2 py-3.5 pl-4 pr-6">
+          <div className="min-w-0">
+            <Headline
+              headline={headline}
+              highlightDecor={highlightDecor}
+              className="max-w-[12ch] font-display text-[1.7rem] font-semibold leading-[1.08] tracking-tight text-ink"
+            />
+            <p className="mt-1.5 text-[12px] leading-snug text-ink/70">{support}</p>
+          </div>
+          <div className="mr-1 h-[132px] w-full max-w-[148px] justify-self-end self-center">
+            <MobileHeroArt />
+          </div>
+        </div>
+      </div>
 
-        <div className="relative grid items-center gap-3 sm:gap-4 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8">
-          <div className="order-2 lg:order-2">
-            <Hero3DBoundary>
-              <Hero3D />
-            </Hero3DBoundary>
+      {/* Desktop */}
+      <div className="relative hidden overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-[#ffe8c8] via-[#eef0ff] to-[#ffd6e5] p-6 lg:block">
+        <div className="pointer-events-none absolute -left-16 top-0 h-48 w-48 rounded-full bg-sun/40 blur-3xl" />
+        <div className="pointer-events-none absolute -right-10 bottom-0 h-56 w-56 rounded-full bg-brand/25 blur-3xl" />
+
+        <div className="relative grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+          <div>
+            <Headline
+              headline={headline}
+              highlightDecor={highlightDecor}
+              className="max-w-[20ch] font-display text-[56px] font-semibold leading-[1.08] tracking-tight text-ink"
+            />
+            <p className="mt-3 max-w-md text-lg text-ink-muted">{support}</p>
           </div>
 
-          <div className="order-1 lg:order-1">
-            <span className="inline-flex items-center gap-2 rounded-full bg-brand px-3 py-1.5 text-sm text-white shadow-soft">
-              <Sparkles aria-hidden="true" size={16} />
-              {badge}
-            </span>
-            <h1 className="mt-3 max-w-[18ch] text-balance font-display text-[34px] font-semibold leading-[1.08] tracking-tight text-ink sm:mt-4 sm:max-w-[20ch] sm:text-[48px] lg:text-[56px]">
-              {highlightDecor ? (
-                <>
-                  {headline.split(/(décor|decor)/i).map((part, index) =>
-                    /^(décor|decor)$/i.test(part) ? (
-                      <span key={index} className="relative inline-block text-[#db2777]">
-                        {part}
-                        <span
-                          className="absolute inset-x-0 -bottom-1 h-2 rounded-full bg-[#fbcfe8]/40 sm:h-2.5"
-                          aria-hidden="true"
-                        />
-                      </span>
-                    ) : (
-                      <span key={index}>{part}</span>
-                    )
-                  )}
-                </>
-              ) : (
-                headline
-              )}
-            </h1>
-            {text ? <p className="mt-2 max-w-md text-sm text-ink-muted sm:mt-3 sm:text-lg">{text}</p> : null}
-            <div
-              className={`mt-3 grid gap-1.5 sm:mt-5 sm:gap-3 ${
-                actionCount >= 3
-                  ? "grid-cols-3"
-                  : actionCount === 2
-                    ? "grid-cols-2 sm:max-w-md"
-                    : "grid-cols-1 sm:max-w-xs"
-              }`}
-            >
-              {entries.who ? (
-                <ButtonLink
-                  href={findHref}
-                  variant="secondary"
-                  className="h-11 w-full min-w-0 gap-1 border-2 border-ink/10 bg-white px-2 text-[12px] sm:h-12 sm:gap-2 sm:px-4 sm:text-sm"
-                >
-                  <Users aria-hidden="true" className="size-3.5 shrink-0 sm:size-[18px]" />
-                  <span className="truncate">Who</span>
-                </ButtonLink>
-              ) : null}
-              {entries.age ? (
-                <ButtonLink
-                  href={findHref}
-                  variant="sun"
-                  className="h-11 w-full min-w-0 gap-1 px-2 text-[12px] sm:h-12 sm:gap-2 sm:px-4 sm:text-sm"
-                >
-                  <Cake aria-hidden="true" className="size-3.5 shrink-0 sm:size-[18px]" />
-                  <span className="truncate">Age</span>
-                </ButtonLink>
-              ) : null}
-              {entries.budget ? (
-                <ButtonLink
-                  href={findHref}
-                  variant="primary"
-                  className="h-11 w-full min-w-0 gap-1 bg-[#059669] px-2 text-[12px] hover:bg-[#047857] sm:h-12 sm:gap-2 sm:px-4 sm:text-sm"
-                >
-                  <Wallet aria-hidden="true" className="size-3.5 shrink-0 sm:size-[18px]" />
-                  <span className="truncate">Budget</span>
-                </ButtonLink>
-              ) : null}
-            </div>
-          </div>
+          <Hero3DBoundary>
+            <Hero3D />
+          </Hero3DBoundary>
         </div>
       </div>
     </section>

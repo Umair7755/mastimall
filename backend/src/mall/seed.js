@@ -737,7 +737,7 @@ await MallSetting.create({
         order: 0,
         active: true,
         config: {
-          text: 'Bacchon ke toys aur ghar ka décor — dono ek jagah. Bas teen taps, asaan shopping.',
+          text: 'Bacchon ke toys aur ghar ka décor — dono ek jagah.',
         },
       },
       {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -19,8 +19,10 @@ import { motion } from "motion/react";
 import { MastiLogo } from "@/components/brand/MastiLogo";
 import { SearchField } from "@/components/layout/SearchField";
 import { PictureTile } from "@/components/home/PictureTile";
+import { DepartmentFindControl } from "@/components/home/DepartmentFindControl";
 import { useCartReady } from "@/hooks/useStoreReady";
 import { apiFetch } from "@/lib/browser";
+import { buildMallFinderGroups } from "@/lib/finderGroups";
 import { useCart } from "@/store/cart";
 import { useUi } from "@/store/ui";
 import { CONTAINER } from "@/lib/layout";
@@ -138,6 +140,13 @@ export function Header({ nav = [], departments = [] }) {
   const [scrolled, setScrolled] = useState(false);
   const [welcomeName, setWelcomeName] = useState("");
   const menuRef = useRef(null);
+  const finderGroups = useMemo(
+    () =>
+      buildMallFinderGroups(
+        departments.length ? departments.map((d) => d.slug) : ["toys", "decor"]
+      ),
+    [departments]
+  );
 
   useEffect(() => {
     function onScroll() {
@@ -209,25 +218,24 @@ export function Header({ nav = [], departments = [] }) {
       )}
     >
       <div className={`${CONTAINER} py-1.5 sm:py-3`}>
-        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2 lg:gap-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3 lg:gap-4">
           <button
             type="button"
             onClick={openShop}
             aria-label="Open menu"
-            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-ink px-2.5 font-display text-base font-semibold text-white sm:h-12 sm:px-4 lg:hidden"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-white transition active:scale-[0.96] sm:h-11 sm:w-11 lg:hidden"
           >
-            <Menu aria-hidden="true" size={17} />
-            <span className="hidden min-[400px]:inline">Menu</span>
+            <Menu aria-hidden="true" size={18} />
           </button>
 
-          <Link href="/" className="min-w-0 shrink-0 overflow-visible" aria-label="Masti Mall home">
+          <Link href="/" className="min-w-0 flex-1 overflow-visible lg:flex-none" aria-label="Masti Mall home">
             <MastiLogo
               height={96}
               priority
               slogan="moods"
               orbit={false}
               tagline={false}
-              className="!h-[3.85rem] !w-[10.4rem] sm:!h-[5.35rem] sm:!w-[14.2rem] lg:!h-[6rem] lg:!w-[16rem]"
+              className="!h-[3.1rem] !w-[8.4rem] sm:!h-[4.6rem] sm:!w-[12.2rem] lg:!h-[6rem] lg:!w-[16rem]"
             />
           </Link>
 
@@ -266,7 +274,19 @@ export function Header({ nav = [], departments = [] }) {
         </div>
 
         <div className="mt-1.5 lg:hidden">
-          <SearchField id="store-search-mobile" />
+          <SearchField
+            id="store-search-mobile"
+            endSlot={
+              <DepartmentFindControl
+                groups={finderGroups}
+                title="Find faster"
+                seeAllHref="/search"
+                tone="mall"
+                variant="header"
+                showHandCue={false}
+              />
+            }
+          />
         </div>
 
         <nav

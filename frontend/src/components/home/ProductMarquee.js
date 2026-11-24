@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -12,7 +12,7 @@ import { formatPkr } from "@/lib/format";
 import { productPath } from "@/lib/paths";
 import { cn } from "@/lib/cn";
 
-function MarqueeProductCard({ product }) {
+function DeskCard({ product }) {
   const addToCart = useAddToCart();
   const href = productPath(product);
   const image = product.images?.[0];
@@ -20,14 +20,14 @@ function MarqueeProductCard({ product }) {
   const onSale = product.salePrice > 0 && product.salePrice < product.price;
 
   return (
-    <article className="group flex w-[9.75rem] shrink-0 flex-col overflow-hidden rounded-[1.35rem] border border-white/70 bg-white shadow-soft transition hover:-translate-y-1 hover:shadow-lift sm:w-[12rem] lg:w-[13rem]">
+    <article className="group flex w-[13rem] shrink-0 flex-col overflow-hidden rounded-[1.35rem] border border-white/70 bg-white shadow-soft transition hover:-translate-y-1 hover:shadow-lift">
       <Link href={href} prefetch={false} className="block">
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#fff7ec] via-[#f3f0ff] to-[#ffe8f1]">
           <ToyImage
             src={image?.url}
             alt={image?.alt || product.title}
-            sizes="(max-width: 640px) 156px, 220px"
-            className="object-contain p-3 transition duration-300 group-hover:scale-105 sm:p-4"
+            sizes="220px"
+            className="object-contain p-4 transition duration-300 group-hover:scale-105"
           />
           {onSale || product.isNew ? (
             <span
@@ -41,7 +41,7 @@ function MarqueeProductCard({ product }) {
           ) : null}
         </div>
         <div className="px-2.5 pb-1 pt-2.5">
-          <h3 className="line-clamp-2 min-h-[2.4em] font-display text-sm font-semibold leading-snug text-ink sm:text-[15px]">
+          <h3 className="line-clamp-2 min-h-[2.4em] font-display text-[15px] font-semibold leading-snug text-ink">
             {product.title}
           </h3>
           <p className="mt-1 font-display text-base font-semibold tabular-nums text-brand">
@@ -70,27 +70,176 @@ function MarqueeProductCard({ product }) {
   );
 }
 
-/**
- * Mall picks rail.
- * Mobile: swipe + arrows only (no continuous timer — major heat fix).
- * Desktop: gentle auto-nudge every few seconds, paused off-screen / hidden tab.
- */
-export function ProductMarquee({ products = [] }) {
+function SpotlightSlide({ product, priority }) {
+  const href = productPath(product);
+  const image = product.images?.[0];
+  const price = product.currentPrice ?? product.salePrice ?? product.price;
+  const onSale = product.salePrice > 0 && product.salePrice < product.price;
+
+  return (
+    <article className="w-full shrink-0 snap-center px-3">
+      <Link
+        href={href}
+        prefetch={false}
+        className="block overflow-hidden rounded-[1.35rem] bg-white shadow-[0_12px_28px_-16px_rgba(15,23,42,0.35)] ring-1 ring-black/5"
+      >
+        <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#fff7ec] via-[#f8fafc] to-[#fce7f3]">
+          <ToyImage
+            src={image?.url}
+            alt={image?.alt || product.title}
+            priority={priority}
+            sizes="92vw"
+            className="object-contain p-3"
+          />
+          {onSale || product.isNew ? (
+            <span
+              className={cn(
+                "absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm",
+                onSale ? "bg-coral" : "bg-brand"
+              )}
+            >
+              {onSale ? "Sale" : "New"}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="px-4 pb-4 pt-3">
+          <h3 className="line-clamp-2 font-display text-[1.05rem] font-semibold leading-snug text-ink">
+            {product.title}
+          </h3>
+          <p className="mt-1 font-display text-xl font-semibold tabular-nums text-brand">
+            {formatPkr(price)}
+            {onSale ? (
+              <span className="ml-2 text-sm font-medium text-ink-muted line-through">
+                {formatPkr(product.price)}
+              </span>
+            ) : null}
+          </p>
+          {!product.inStock ? (
+            <p className="mt-1 text-sm font-semibold text-coral">Sold out</p>
+          ) : null}
+        </div>
+      </Link>
+    </article>
+  );
+}
+
+function MobileSpotlight({ products }) {
+  const reduceMotion = useReducedMotion();
+  const pageVisible = usePageVisible();
+  const scroller = useRef(null);
+  const rootRef = useRef(null);
+  const pauseUntil = useRef(0);
+  const [active, setActive] = useState(0);
+  const [inView, setInView] = useState(true);
+  const list = products.slice(0, 8);
+
+  const syncActive = useCallback(() => {
+    const node = scroller.current;
+    if (!node || !node.clientWidth) return;
+    const i = Math.round(node.scrollLeft / node.clientWidth);
+    setActive(Math.max(0, Math.min(list.length - 1, i)));
+  }, [list.length]);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node || !("IntersectionObserver" in window)) return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.2 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const node = scroller.current;
+    if (!node) return undefined;
+    node.addEventListener("scroll", syncActive, { passive: true });
+    return () => node.removeEventListener("scroll", syncActive);
+  }, [syncActive]);
+
+  useEffect(() => {
+    if (reduceMotion || !pageVisible || !inView || list.length < 2) return undefined;
+    const node = scroller.current;
+    if (!node) return undefined;
+
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      if (Date.now() < pauseUntil.current) return;
+      const width = node.clientWidth;
+      if (!width) return;
+      const atEnd = node.scrollLeft >= (list.length - 1) * width - 8;
+      node.scrollTo({
+        left: atEnd ? 0 : node.scrollLeft + width,
+        behavior: "smooth",
+      });
+    }, 4200);
+
+    function pause() {
+      pauseUntil.current = Date.now() + 10000;
+    }
+
+    node.addEventListener("pointerdown", pause, { passive: true });
+    node.addEventListener("touchstart", pause, { passive: true });
+
+    return () => {
+      window.clearInterval(timer);
+      node.removeEventListener("pointerdown", pause);
+      node.removeEventListener("touchstart", pause);
+    };
+  }, [reduceMotion, pageVisible, inView, list.length]);
+
+  function goTo(i) {
+    const node = scroller.current;
+    if (!node) return;
+    pauseUntil.current = Date.now() + 10000;
+    node.scrollTo({ left: i * node.clientWidth, behavior: "smooth" });
+  }
+
+  if (!list.length) return null;
+
+  return (
+    <div ref={rootRef} className="relative">
+      <div
+        ref={scroller}
+        className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        {list.map((product, i) => (
+          <SpotlightSlide key={product.id} product={product} priority={i === 0} />
+        ))}
+      </div>
+
+      {list.length > 1 ? (
+        <div className="mt-3 flex items-center justify-center gap-1.5" role="tablist" aria-label="Mall picks">
+          {list.map((product, i) => (
+            <button
+              key={product.id}
+              type="button"
+              role="tab"
+              aria-selected={i === active}
+              aria-label={`Show pick ${i + 1}`}
+              onClick={() => goTo(i)}
+              className={cn(
+                "h-1.5 rounded-full transition-all",
+                i === active ? "w-5 bg-ink" : "w-1.5 bg-ink/25"
+              )}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function DesktopRail({ products }) {
   const reduceMotion = useReducedMotion();
   const pageVisible = usePageVisible();
   const scroller = useRef(null);
   const rootRef = useRef(null);
   const pauseUntil = useRef(0);
   const [inView, setInView] = useState(true);
-  const [isDesktop, setIsDesktop] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const sync = () => setIsDesktop(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
 
   useEffect(() => {
     const node = rootRef.current;
@@ -115,8 +264,7 @@ export function ProductMarquee({ products = [] }) {
   }
 
   useEffect(() => {
-    // No continuous scroll on mobile — biggest JS heat win.
-    if (reduceMotion || !isDesktop || !pageVisible || !inView) return undefined;
+    if (reduceMotion || !pageVisible || !inView) return undefined;
     const node = scroller.current;
     if (!node) return undefined;
 
@@ -144,26 +292,22 @@ export function ProductMarquee({ products = [] }) {
       node.removeEventListener("pointerdown", pause);
       node.removeEventListener("wheel", pause);
     };
-  }, [reduceMotion, isDesktop, pageVisible, inView, products]);
-
-  if (!products.length) return null;
-
-  const list = isDesktop ? products : products.slice(0, 12);
+  }, [reduceMotion, pageVisible, inView, products]);
 
   const arrowClass =
-    "absolute top-[38%] z-20 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full " +
+    "absolute top-[38%] z-20 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full " +
     "border-2 border-white bg-ink text-sun shadow-[0_6px_16px_-6px_rgb(15_23_42_/_0.5)] " +
-    "ring-1 ring-ink/10 transition active:scale-95 sm:h-10 sm:w-10 lg:h-11 lg:w-11";
+    "ring-1 ring-ink/10 transition active:scale-95";
 
   return (
-    <div ref={rootRef} className="relative -mx-3 py-1 sm:mx-0">
+    <div ref={rootRef} className="relative py-1">
       <div
         ref={scroller}
-        className="no-scrollbar flex gap-3 overflow-x-auto overscroll-x-contain px-3 pb-1 sm:gap-4 sm:px-0"
+        className="no-scrollbar flex gap-4 overflow-x-auto overscroll-x-contain pb-1"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
-        {list.map((product) => (
-          <MarqueeProductCard key={product.id} product={product} />
+        {products.map((product) => (
+          <DeskCard key={product.id} product={product} />
         ))}
       </div>
       <button
@@ -175,7 +319,7 @@ export function ProductMarquee({ products = [] }) {
         }}
         className={cn(arrowClass, "left-0")}
       >
-        <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.75} aria-hidden="true" />
+        <ChevronLeft className="h-5 w-5" strokeWidth={2.75} aria-hidden="true" />
       </button>
       <button
         type="button"
@@ -186,9 +330,28 @@ export function ProductMarquee({ products = [] }) {
         }}
         className={cn(arrowClass, "right-0")}
       >
-        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.75} aria-hidden="true" />
+        <ChevronRight className="h-5 w-5" strokeWidth={2.75} aria-hidden="true" />
       </button>
-      <span className="sr-only">Swipe to browse mall picks.</span>
     </div>
+  );
+}
+
+/**
+ * Mall picks rail.
+ * Mobile: one full-width spotlight + dots + gentle auto-advance.
+ * Desktop: horizontal product rail with arrows.
+ */
+export function ProductMarquee({ products = [] }) {
+  if (!products.length) return null;
+
+  return (
+    <>
+      <div className="lg:hidden">
+        <MobileSpotlight products={products} />
+      </div>
+      <div className="hidden lg:block">
+        <DesktopRail products={products} />
+      </div>
+    </>
   );
 }

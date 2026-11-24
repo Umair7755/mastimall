@@ -22,13 +22,16 @@ export function DepartmentFindControl({
   seeAllHref = "/search",
   tone = "toys",
   showHandCue = true,
+  /** Icon-only control for the sticky header (mobile). */
+  variant = "default",
 }) {
   const [open, setOpen] = useState(false);
   const [showCue, setShowCue] = useState(false);
   const reduceMotion = useReducedMotion();
+  const isHeader = variant === "header";
 
   useEffect(() => {
-    if (!showHandCue || typeof window === "undefined") return undefined;
+    if (!showHandCue || isHeader || typeof window === "undefined") return undefined;
     try {
       if (window.sessionStorage.getItem(OPENED_KEY) === "1") return undefined;
     } catch {
@@ -37,7 +40,7 @@ export function DepartmentFindControl({
     setShowCue(true);
     const timer = window.setTimeout(() => setShowCue(false), 5000);
     return () => window.clearTimeout(timer);
-  }, [showHandCue]);
+  }, [showHandCue, isHeader]);
 
   function openSheet() {
     setShowCue(false);
@@ -57,42 +60,55 @@ export function DepartmentFindControl({
   return (
     <>
       <div className="relative shrink-0">
-        <button
-          type="button"
-          onClick={openSheet}
-          className={cn(
-            "relative z-10 inline-flex h-11 items-center gap-2 rounded-full border px-1.5 pr-3 transition active:scale-[0.98]",
-            isDecor
-              ? "border-teal-200/80 bg-gradient-to-r from-[#ecfdf5] to-white"
-              : isMall
-                ? "border-ink/15 bg-ink text-sun"
-                : "border-[#f59e0b]/40 bg-gradient-to-r from-[#fff7ed] via-white to-[#eef2ff]"
-          )}
-          aria-haspopup="dialog"
-          aria-expanded={open}
-        >
-          <span
-            className={cn(
-              "grid h-8 w-8 place-items-center rounded-full",
-              isDecor ? "bg-teal-800 text-sun" : isMall ? "bg-sun text-ink" : "bg-ink text-sun"
-            )}
+        {isHeader ? (
+          <button
+            type="button"
+            onClick={openSheet}
+            aria-label="Find filters"
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            className="relative z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-ink/15 bg-ink text-sun shadow-sm transition active:scale-[0.96] sm:h-11 sm:w-11"
           >
-            <SlidersHorizontal size={14} strokeWidth={2.4} aria-hidden="true" />
-          </span>
-          <span className="flex flex-col items-start leading-none">
+            <SlidersHorizontal size={16} strokeWidth={2.35} aria-hidden="true" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={openSheet}
+            className={cn(
+              "relative z-10 inline-flex h-11 items-center gap-2 rounded-full border px-1.5 pr-3 transition active:scale-[0.98]",
+              isDecor
+                ? "border-teal-200/80 bg-gradient-to-r from-[#ecfdf5] to-white"
+                : isMall
+                  ? "border-ink/15 bg-ink text-sun"
+                  : "border-[#f59e0b]/40 bg-gradient-to-r from-[#fff7ed] via-white to-[#eef2ff]"
+            )}
+            aria-haspopup="dialog"
+            aria-expanded={open}
+          >
             <span
               className={cn(
-                "text-[9px] font-bold uppercase tracking-[0.14em]",
-                isMall ? "text-white/70" : "text-ink-muted"
+                "grid h-8 w-8 place-items-center rounded-full",
+                isDecor ? "bg-teal-800 text-sun" : isMall ? "bg-sun text-ink" : "bg-ink text-sun"
               )}
             >
-              Find
+              <SlidersHorizontal size={14} strokeWidth={2.4} aria-hidden="true" />
             </span>
-            <span className={cn("font-display text-[13px] font-bold", isMall ? "text-sun" : "text-ink")}>
-              Filters
+            <span className="flex flex-col items-start leading-none">
+              <span
+                className={cn(
+                  "text-[9px] font-bold uppercase tracking-[0.14em]",
+                  isMall ? "text-white/70" : "text-ink-muted"
+                )}
+              >
+                Find
+              </span>
+              <span className={cn("font-display text-[13px] font-bold", isMall ? "text-sun" : "text-ink")}>
+                Filters
+              </span>
             </span>
-          </span>
-        </button>
+          </button>
+        )}
 
         <AnimatePresence>
           {showCue ? (
@@ -132,44 +148,40 @@ export function DepartmentFindControl({
         side="bottom"
         footer={
           <div className="flex gap-2">
-            <Button variant="secondary" className="min-h-12 flex-1" onClick={() => setOpen(false)}>
+            <Button variant="secondary" className="min-h-10 flex-1" onClick={() => setOpen(false)}>
               Done
             </Button>
             <Link
               href={seeAllHref}
               onClick={() => setOpen(false)}
-              className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-brand px-4 font-display text-sm font-semibold text-white"
+              className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-brand px-4 font-display text-sm font-semibold text-white"
             >
               Browse all
             </Link>
           </div>
         }
       >
-        <div className="space-y-5 pb-2">
-          <p className="text-sm text-ink-muted">
-            Tap a chip to jump straight to matching{" "}
-            {isDecor ? "décor" : isMall ? "toys & décor" : "toys"}.
+        <div className="space-y-3 pb-1">
+          <p className="text-xs text-ink-muted">
+            Tap a chip for matching {isDecor ? "décor" : isMall ? "toys & décor" : "toys"}.
           </p>
 
           {groups.map((group) => {
             const Icon = group.Icon || Sparkles;
             return (
               <section key={group.key}>
-                <div className="mb-2.5 flex items-center gap-2">
+                <div className="mb-1.5 flex items-center gap-2">
                   <span
                     className={cn(
-                      "inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[10px] font-bold uppercase tracking-[0.06em] ring-1",
+                      "inline-flex h-6 items-center gap-1 rounded-full px-2 text-[10px] font-bold uppercase tracking-[0.06em] ring-1",
                       group.tone
                     )}
                   >
-                    <Icon size={12} aria-hidden="true" strokeWidth={2.5} />
+                    <Icon size={11} aria-hidden="true" strokeWidth={2.5} />
                     {group.label}
                   </span>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted">
-                    Pick one
-                  </span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {group.items.map((item) => {
                     const ChipIcon = item.ChipIcon;
                     return (
@@ -178,7 +190,7 @@ export function DepartmentFindControl({
                         href={item.href}
                         onClick={() => setOpen(false)}
                         className={cn(
-                          "inline-flex min-h-11 items-center gap-1.5 rounded-full border border-black/5 bg-white px-1.5 pr-3",
+                          "inline-flex min-h-9 items-center gap-1.5 rounded-full border border-black/5 bg-white px-1.5 pr-2.5",
                           item.emphasis === "age" && "border-[#f59e0b]/35 ring-1 ring-[#f59e0b]/20",
                           item.emphasis === "budget" && "border-[#059669]/35 ring-1 ring-[#059669]/20"
                         )}
@@ -187,18 +199,18 @@ export function DepartmentFindControl({
                         }}
                       >
                         {item.image ? (
-                          <span className="relative grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-white/80 ring-1 ring-black/5">
-                            <ToyImage src={item.image} alt="" sizes="32px" className="object-contain p-0.5" />
+                          <span className="relative grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-white/80 ring-1 ring-black/5">
+                            <ToyImage src={item.image} alt="" sizes="28px" className="object-contain p-0.5" />
                           </span>
                         ) : ChipIcon ? (
-                          <span className="grid h-8 w-8 place-items-center rounded-full bg-white/80 text-ink ring-1 ring-black/5">
-                            <ChipIcon size={14} aria-hidden="true" />
+                          <span className="grid h-7 w-7 place-items-center rounded-full bg-white/80 text-ink ring-1 ring-black/5">
+                            <ChipIcon size={13} aria-hidden="true" />
                           </span>
                         ) : null}
                         <span className="flex flex-col">
                           <span
                             className={cn(
-                              "font-display text-[13px] leading-none text-ink",
+                              "font-display text-[12px] leading-none text-ink",
                               item.emphasis === "budget" ? "font-bold tabular-nums" : "font-semibold",
                               item.emphasis === "age" && "font-bold"
                             )}

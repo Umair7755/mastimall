@@ -61,17 +61,11 @@ export function normalizeHomeSections(sections = []) {
 export async function HomeSections({ sections = [], departments = [] }) {
   void departments;
   const normalized = normalizeHomeSections(sections);
-  const entries = {
-    who: true,
-    age: true,
-    budget: true,
-  };
-
   const blocks = [];
   for (const section of normalized) {
     const key = `${section.type}-${section.order}-${section.title}`;
     if (section.type === "hero") {
-      blocks.push(<Hero key={key} title={section.title} text={section.config?.text} entries={entries} />);
+      blocks.push(<Hero key={key} title={section.title} text={section.config?.text} />);
     } else if (section.type === "finder") {
       blocks.push(<FindToysRail key={key} budgetLimits={section.config?.limits} />);
     } else if (section.type === "products") {

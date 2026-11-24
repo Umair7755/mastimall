@@ -40,19 +40,6 @@
   --mobile-chrome-bottom: calc(
     var(--mobile-nav-h) + var(--mobile-chrome-gap) + env(safe-area-inset-bottom, 0px)
   );
-  /* Sticky PDP buy bar height reserve above chrome (BuyBox sets this when mounted) */
-  --mobile-buybar-h: 0px;
-}
-
-/* Lift chat FAB above the sticky buy bar on product pages */
-html[data-buybar="1"] .help-chat-dock {
-  bottom: calc(var(--mobile-chrome-bottom) + var(--mobile-buybar-h) + 0.5rem) !important;
-}
-
-@media (min-width: 1024px) {
-  html[data-buybar="1"] .help-chat-dock {
-    bottom: 2rem !important;
-  }
 }
 
 body {

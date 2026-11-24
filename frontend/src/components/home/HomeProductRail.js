@@ -176,18 +176,28 @@ export function HomeProductRail({
               title={title || meta.title}
               text={text || meta.text}
               action={
-                <Link
-                  href={moreHref || meta.moreHref}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-4 font-display text-sm text-white transition hover:bg-brand"
-                >
-                  <Icon aria-hidden="true" size={15} />
-                  See all
-                </Link>
+                mode === "marquee" ? (
+                  <Link
+                    href={moreHref || meta.moreHref}
+                    className="hidden min-h-10 items-center gap-2 rounded-full bg-ink px-4 font-display text-sm text-white transition hover:bg-brand lg:inline-flex"
+                  >
+                    <Icon aria-hidden="true" size={15} />
+                    See all
+                  </Link>
+                ) : (
+                  <Link
+                    href={moreHref || meta.moreHref}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-4 font-display text-sm text-white transition hover:bg-brand"
+                  >
+                    <Icon aria-hidden="true" size={15} />
+                    See all
+                  </Link>
+                )
               }
             />
           </div>
 
-          <LazyMount minHeight={mode === "marquee" ? 280 : 220} rootMargin="280px 0px">
+          <LazyMount minHeight={mode === "marquee" ? 420 : 220} rootMargin="280px 0px">
             {mode === "marquee" ? (
               <ProductMarquee products={products} />
             ) : mobileGrid ? (

@@ -54,7 +54,7 @@ export function Drawer({ open, onClose, title, side = "right", children, footer 
             className={cn(
               "absolute flex flex-col overflow-hidden bg-white shadow-[0_-16px_48px_rgba(15,23,42,0.28)]",
               isBottom
-                ? "inset-x-0 bottom-0 top-[max(3.5rem,env(safe-area-inset-top,0px))] rounded-t-[1.35rem]"
+                ? "inset-x-0 bottom-0 max-h-[min(72dvh,560px)] rounded-t-[1.25rem]"
                 : "inset-y-0 right-0 w-full max-w-md"
             )}
             initial={hidden}
@@ -64,36 +64,58 @@ export function Drawer({ open, onClose, title, side = "right", children, footer 
           >
             <div className="relative z-20 shrink-0 border-b border-slate-200 bg-white">
               {isBottom ? (
-                <div className="flex justify-center pb-1 pt-3" aria-hidden="true">
-                  <span className="h-1 w-9 rounded-full bg-slate-300" />
+                <div className="flex justify-center pb-0.5 pt-2" aria-hidden="true">
+                  <span className="h-1 w-8 rounded-full bg-slate-300" />
                 </div>
               ) : null}
 
-              <div className="flex items-center gap-3 px-4 pb-3.5 pt-1.5">
-                <h2 className="min-w-0 flex-1 truncate font-display text-xl font-semibold leading-none text-ink">
+              <div
+                className={cn(
+                  "flex items-center gap-3 px-4",
+                  isBottom ? "pb-2.5 pt-1" : "pb-3.5 pt-1.5"
+                )}
+              >
+                <h2
+                  className={cn(
+                    "min-w-0 flex-1 truncate font-display font-semibold leading-none text-ink",
+                    isBottom ? "text-lg" : "text-xl"
+                  )}
+                >
                   {title}
                 </h2>
                 <button
                   type="button"
                   onClick={onClose}
                   aria-label="Close filters"
-                  className="inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-slate-900 text-white shadow-md transition hover:bg-slate-800 active:scale-95"
+                  className={cn(
+                    "inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full bg-slate-900 text-white shadow-md transition hover:bg-slate-800 active:scale-95",
+                    isBottom ? "h-9 w-9" : "h-11 w-11"
+                  )}
                 >
-                  <X size={20} strokeWidth={2.6} aria-hidden="true" />
+                  <X size={isBottom ? 18 : 20} strokeWidth={2.6} aria-hidden="true" />
                 </button>
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-auto overscroll-contain bg-white px-4 py-3">
+            <div
+              className={cn(
+                "min-h-0 flex-1 overflow-auto overscroll-contain bg-white px-4",
+                isBottom ? "py-2" : "py-3"
+              )}
+            >
               {children}
             </div>
 
             {footer ? (
               <div
-                className="relative z-20 shrink-0 border-t border-slate-200 bg-white px-4 pt-3"
+                className={cn(
+                  "relative z-20 shrink-0 border-t border-slate-200 bg-white px-4",
+                  isBottom ? "pt-2.5" : "pt-3"
+                )}
                 style={{
-                  paddingBottom:
-                    "calc(0.85rem + env(safe-area-inset-bottom, 0px) + var(--mobile-chrome-bottom, 0px))",
+                  paddingBottom: isBottom
+                    ? "calc(0.65rem + env(safe-area-inset-bottom, 0px) + var(--mobile-chrome-bottom, 0px))"
+                    : "calc(0.85rem + env(safe-area-inset-bottom, 0px) + var(--mobile-chrome-bottom, 0px))",
                 }}
               >
                 {footer}

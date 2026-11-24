@@ -1,13 +1,59 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Gift, Sofa, X } from "lucide-react";
-import { PictureTile } from "@/components/home/PictureTile";
+import {
+  Armchair,
+  Baby,
+  Bike,
+  Blocks,
+  BookOpen,
+  Car,
+  ChevronRight,
+  Flower2,
+  Frame,
+  Gamepad2,
+  Gift,
+  Image as ImageIcon,
+  Lamp,
+  Puzzle,
+  Heart,
+  Sofa,
+  Trees,
+  Users,
+  UtensilsCrossed,
+  X,
+} from "lucide-react";
 import { useUi } from "@/store/ui";
 import { cn } from "@/lib/cn";
+
+/** Lucide icons by category slug — works for toys + décor without static SVGs. */
+const CATEGORY_ICONS = {
+  "remote-control": Car,
+  "vehicles-and-ride-ons": Bike,
+  "baby-toys": Baby,
+  "dolls-and-pretend-play": Users,
+  "building-and-puzzles": Blocks,
+  "learning-and-creative": BookOpen,
+  "outdoor-and-water-play": Trees,
+  "games-and-fun": Gamepad2,
+  "soft-toys": Heart,
+  "gift-ideas": Gift,
+  "wall-art": ImageIcon,
+  "cushions-throws": Armchair,
+  "lamps-lighting": Lamp,
+  "vases-planters": Flower2,
+  "frames-mirrors": Frame,
+  "table-decor": UtensilsCrossed,
+};
+
+function categoryIcon(slug, departmentSlug) {
+  if (CATEGORY_ICONS[slug]) return CATEGORY_ICONS[slug];
+  if (departmentSlug === "decor") return Sofa;
+  return Puzzle;
+}
 
 export function ShopSheet({ departments = [] }) {
   const open = useUi((state) => state.shopOpen);
@@ -17,10 +63,27 @@ export function ShopSheet({ departments = [] }) {
   const searchParams = useSearchParams();
   const departmentParam = searchParams?.get("department") || "";
 
-  const onToys =
-    pathname === "/toys" || pathname.startsWith("/toys/") || departmentParam === "toys";
-  const onDecor =
-    pathname === "/decor" || pathname.startsWith("/decor/") || departmentParam === "decor";
+  const tabs = useMemo(
+    () =>
+      (departments.length ? departments : []).map((d) => ({
+        slug: d.slug,
+        name: d.name || d.slug,
+        categories: d.categories || [],
+      })),
+    [departments]
+  );
+
+  const defaultTab = useMemo(() => {
+    if (pathname.startsWith("/decor") || departmentParam === "decor") return "decor";
+    if (pathname.startsWith("/toys") || departmentParam === "toys") return "toys";
+    return tabs[0]?.slug || "toys";
+  }, [pathname, departmentParam, tabs]);
+
+  const [tab, setTab] = useState(defaultTab);
+
+  useEffect(() => {
+    if (open) setTab(defaultTab);
+  }, [open, defaultTab]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -30,6 +93,9 @@ export function ShopSheet({ departments = [] }) {
       document.body.style.overflow = previous;
     };
   }, [open]);
+
+  const active = tabs.find((t) => t.slug === tab) || tabs[0];
+  const isDecor = active?.slug === "decor";
 
   return (
     <AnimatePresence>
@@ -41,83 +107,102 @@ export function ShopSheet({ departments = [] }) {
           exit={{ y: reduce ? 0 : "100%" }}
           transition={reduce ? { duration: 0.01 } : { type: "spring", duration: 0.35, bounce: 0 }}
         >
-          <div className="mobile-chrome-pad mx-auto w-full max-w-[1920px] px-2 py-5 sm:px-3 lg:px-4 xl:px-5">
-            <div className="flex items-center justify-between rounded-full border border-white/70 bg-surface/90 px-4 py-2 shadow-nav backdrop-blur">
-              <h2 className="font-display text-2xl">Browse the mall</h2>
+          <div className="mobile-chrome-pad mx-auto w-full max-w-lg px-3 py-4 sm:px-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-display text-xl font-semibold text-ink">Menu</h2>
               <button
                 type="button"
                 onClick={close}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-brand-soft px-4 text-brand"
+                aria-label="Close menu"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-ink text-white"
               >
                 <X aria-hidden="true" size={18} />
-                Close
               </button>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <Link
-                href="/toys"
-                onClick={close}
-                aria-current={onToys ? "page" : undefined}
-                className={cn(
-                  "inline-flex h-12 items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-bold transition",
-                  onToys
-                    ? "border-[#4f46e5] bg-[#4f46e5] text-white ring-2 ring-[#c7d2fe]"
-                    : "border-line/70 bg-white text-ink hover:border-[#4f46e5]/40"
-                )}
-              >
-                <Gift size={16} aria-hidden="true" />
-                All toys
-              </Link>
-              <Link
-                href="/decor"
-                onClick={close}
-                aria-current={onDecor ? "page" : undefined}
-                className={cn(
-                  "inline-flex h-12 items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-bold transition",
-                  onDecor
-                    ? "border-teal-700 bg-teal-700 text-white ring-2 ring-teal-200"
-                    : "border-line/70 bg-white text-ink hover:border-teal-600/40"
-                )}
-              >
-                <Sofa size={16} aria-hidden="true" />
-                All décor
-              </Link>
+            {/* Top tabs — Toys / Decor */}
+            <div
+              role="tablist"
+              aria-label="Departments"
+              className="mt-4 grid grid-cols-2 gap-1 rounded-2xl border border-line/60 bg-white p-1 shadow-sm"
+            >
+              {tabs.map((item) => {
+                const selected = item.slug === active?.slug;
+                const Icon = item.slug === "decor" ? Sofa : Gift;
+                return (
+                  <button
+                    key={item.slug}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => setTab(item.slug)}
+                    className={cn(
+                      "inline-flex h-10 items-center justify-center gap-1.5 rounded-xl text-sm font-semibold transition",
+                      selected
+                        ? item.slug === "decor"
+                          ? "bg-teal-800 text-white"
+                          : "bg-ink text-sun"
+                        : "text-ink-muted"
+                    )}
+                  >
+                    <Icon size={15} aria-hidden="true" />
+                    {item.name}
+                  </button>
+                );
+              })}
             </div>
 
-            {departments.length ? (
-              <div className="mt-6 space-y-8">
-                {departments.map((department) => (
-                  <section key={department.id || department.slug}>
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <h3 className="font-display text-xl font-semibold text-ink">{department.name}</h3>
-                      <Link
-                        href={`/${department.slug}`}
-                        onClick={close}
-                        className="text-sm font-semibold text-brand hover:underline"
-                      >
-                        View all
-                      </Link>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                      {(department.categories || []).map((category) => (
-                        <div key={category.id} className="rounded-card bg-surface/80 p-3 shadow-soft">
-                          <PictureTile
-                            href={`/${department.slug}/${category.slug}`}
-                            title={category.name}
-                            image={category.image?.url}
-                            color={category.color}
-                            shape="circle"
-                            onClick={close}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                ))}
+            {active ? (
+              <div className="mt-4">
+                <div className="mb-2 flex items-center justify-between px-0.5">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-muted">
+                    Categories
+                  </p>
+                  <Link
+                    href={`/${active.slug}`}
+                    onClick={close}
+                    className="text-xs font-semibold text-brand"
+                  >
+                    View all
+                  </Link>
+                </div>
+
+                <ul className="overflow-hidden rounded-2xl border border-line/60 bg-white shadow-sm">
+                  {(active.categories || []).map((category, index) => {
+                    const Icon = categoryIcon(category.slug, active.slug);
+                    return (
+                      <li key={category.id || category.slug}>
+                        <Link
+                          href={`/${active.slug}/${category.slug}`}
+                          prefetch={false}
+                          onClick={close}
+                          className={cn(
+                            "flex min-h-12 items-center gap-3 px-3 py-2.5 transition active:bg-canvas",
+                            index > 0 && "border-t border-line/50"
+                          )}
+                        >
+                          <span
+                            className="grid h-10 w-10 shrink-0 place-items-center rounded-full"
+                            style={{ backgroundColor: category.color || (isDecor ? "#ecfdf5" : "#eef2ff") }}
+                          >
+                            <Icon size={18} strokeWidth={2.2} className="text-ink" aria-hidden="true" />
+                          </span>
+                          <span className="min-w-0 flex-1 font-display text-[15px] font-semibold text-ink">
+                            {category.name}
+                          </span>
+                          <ChevronRight size={16} className="shrink-0 text-ink-muted" aria-hidden="true" />
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                {!active.categories?.length ? (
+                  <p className="mt-4 text-sm text-ink-muted">No categories in this section yet.</p>
+                ) : null}
               </div>
             ) : (
-              <p className="mt-8 text-ink-muted">Categories will show here once the shop is connected.</p>
+              <p className="mt-8 text-sm text-ink-muted">Categories will show here once the shop is connected.</p>
             )}
           </div>
         </motion.div>

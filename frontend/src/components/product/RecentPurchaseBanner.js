@@ -61,7 +61,7 @@ export function RecentPurchaseBanner({ productTitle = "this toy" }) {
   const mins = minutesAgo(index + String(productTitle).length);
 
   return (
-    <div className="pointer-events-none fixed bottom-[calc(var(--mobile-chrome-bottom)+var(--mobile-buybar-h)+0.5rem)] left-3 z-40 max-w-[min(22rem,calc(100vw-1.5rem))] sm:left-5 lg:!bottom-8">
+    <div className="pointer-events-none fixed bottom-[calc(var(--mobile-chrome-bottom)+0.5rem)] left-3 z-40 max-w-[min(22rem,calc(100vw-1.5rem))] sm:left-5 lg:!bottom-8">
       <AnimatePresence>
         {visible ? (
           <motion.aside

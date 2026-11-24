@@ -7,22 +7,13 @@ import { motion, useReducedMotion } from "motion/react";
 import { useCan3D } from "@/hooks/useCan3D";
 import { useInView } from "@/hooks/useInView";
 import { usePageVisible } from "@/hooks/usePageVisible";
-import { cn } from "@/lib/cn";
-
 const HeroScene = dynamic(() => import("./HeroScene"), { ssr: false });
 
 function HeroPoster({ reduceMotion, mobile }) {
   return (
-    <div className="absolute inset-0">
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-4 rounded-[1.75rem] bg-gradient-to-br from-white/60 via-transparent to-brand/10",
-          mobile ? "blur-md" : "blur-xl"
-        )}
-        aria-hidden="true"
-      />
+    <div className="absolute inset-0 bg-transparent">
       <motion.div
-        className="absolute inset-0"
+        className="absolute inset-0 bg-transparent"
         animate={
           reduceMotion || mobile
             ? undefined
@@ -39,8 +30,10 @@ function HeroPoster({ reduceMotion, mobile }) {
           alt="Toys and home décor floating together"
           fill
           priority
+          unoptimized
           sizes="(min-width: 1024px) 560px, 90vw"
-          className="object-contain drop-shadow-lg"
+          className="bg-transparent object-contain"
+          style={{ background: "transparent" }}
         />
       </motion.div>
     </div>
@@ -58,7 +51,7 @@ export default function Hero3D() {
   return (
     <motion.div
       ref={frame}
-      className="hero-stage relative h-[26vh] min-h-36 w-full overflow-hidden sm:min-h-44 lg:h-[min(520px,52vh)] lg:min-h-[420px]"
+      className="hero-stage relative h-[min(520px,52vh)] min-h-[420px] w-full overflow-hidden"
       style={can3D ? { perspective: 900 } : undefined}
       initial={reduceMotion ? false : { opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}

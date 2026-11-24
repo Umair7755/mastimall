@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import { FindMallRail } from "@/components/home/FindMallRail";
-import { HomeFindBar } from "@/components/home/HomeFindBar";
 import { Hero } from "@/components/home/Hero";
 import { HomeProductRail } from "@/components/home/HomeProductRail";
 import { TrustStrip } from "@/components/home/TrustStrip";
@@ -12,7 +11,7 @@ import { formatPkr } from "@/lib/format";
 import { mixProductsWeighted } from "@/lib/mixProducts";
 
 /**
- * Home: mobile find sheet → Mall picks marquee → grid shelves.
+ * Home: hero → products. Mobile filters live in the header (next to wishlist).
  * Desktop keeps the full Find rail + row carousels.
  */
 export function StoreHome({ hero, departments = [], newArrivals = [] }) {
@@ -61,27 +60,17 @@ export function StoreHome({ hero, departments = [], newArrivals = [] }) {
 
   return (
     <div className="pb-4">
-      <Hero
-        title={hero?.title}
-        text={hero?.text}
-        findHref="#find"
-        entries={{ who: true, age: true, budget: true }}
-      />
+      <Hero title={hero?.title} text={hero?.text} />
 
-      <div id="find" className="scroll-mt-28">
-        <div className="lg:hidden">
-          <HomeFindBar groups={finderGroups} seeAllHref="/search" />
-        </div>
-        <div className="hidden lg:block">
-          <FindMallRail
-            variant="home"
-            groups={finderGroups}
-            title="Find faster"
-            subtitle="Pick who, age, type or budget"
-            mobileLabel="Find toys & décor · tap a chip"
-            seeAllHref="/search"
-          />
-        </div>
+      <div id="find" className="scroll-mt-28 hidden lg:block">
+        <FindMallRail
+          variant="home"
+          groups={finderGroups}
+          title="Find faster"
+          subtitle="Pick who, age, type or budget"
+          mobileLabel="Find toys & décor · tap a chip"
+          seeAllHref="/search"
+        />
       </div>
 
       <div className="mt-1 space-y-1 sm:mt-2 sm:space-y-2">
