@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef } from "react";
 import { Heart, ShoppingBag } from "lucide-react";
 import { motion } from "motion/react";
-import { Badge, PriceRibbon } from "@/components/ui/Badge";
+import { Badge, PriceRibbon, SaleBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { PriceTag } from "@/components/product/PriceTag";
 import { StarRating } from "@/components/product/StarRating";
@@ -25,6 +25,10 @@ export function ProductCard({ product, hot = false, index = 0, compact = false }
   const image = product.images?.[0];
   const price = product.currentPrice ?? product.salePrice ?? product.price;
   const onSale = product.salePrice > 0 && product.salePrice < product.price;
+  const salePercent =
+    onSale && product.price > 0
+      ? Math.round(((product.price - product.salePrice) / product.price) * 100)
+      : 0;
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line/60 bg-white shadow-soft transition duration-200 lg:hover:-translate-y-0.5 lg:hover:shadow-lift">
@@ -61,14 +65,15 @@ export function ProductCard({ product, hot = false, index = 0, compact = false }
                 <PriceRibbon
                   label={onSale ? "SALE" : "FROM"}
                   value={formatPkr(price).replace("Rs ", "Rs. ")}
-                  color={RIBBON_COLORS[index % RIBBON_COLORS.length]}
+                  color={onSale ? "#e11d48" : RIBBON_COLORS[index % RIBBON_COLORS.length]}
                 />
+                {onSale ? <SaleBadge percent={salePercent} compact={compact} /> : null}
                 {product.isNew && !onSale ? <Badge tone="new">New</Badge> : null}
               </div>
             ) : (
               <div className={`absolute z-[1] flex items-center gap-1 ${compact ? "left-1.5 top-1.5" : "left-2.5 top-2.5"}`}>
-                {product.isNew ? <Badge tone="new">New</Badge> : null}
-                {onSale ? <Badge tone="sale">Sale</Badge> : null}
+                {onSale ? <SaleBadge percent={salePercent} compact={compact} /> : null}
+                {product.isNew && !onSale ? <Badge tone="new">New</Badge> : null}
               </div>
             )}
           </div>

@@ -325,7 +325,7 @@ export function CheckoutForm() {
   const visiblePaymentMethods = wantsAdvance ? walletMethodsOnly : paymentMethods;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-5 pb-[calc(var(--mobile-chrome-bottom)+5rem)] lg:py-7 lg:pb-10">
+    <div className="mx-auto max-w-4xl px-4 py-5 pb-[calc(var(--mobile-chrome-bottom)+1.5rem)] lg:py-7 lg:pb-10">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="font-display text-[28px] font-semibold tracking-tight lg:text-[34px]">Checkout</h1>
@@ -692,7 +692,7 @@ export function CheckoutForm() {
             </p>
           ) : null}
 
-          <Button type="submit" className="mt-3 hidden w-full lg:inline-flex" disabled={blocked}>
+          <Button type="submit" className="mt-3 w-full" disabled={blocked}>
             {formState.isSubmitting
               ? "Placing order…"
               : missingReceipt
@@ -703,35 +703,6 @@ export function CheckoutForm() {
           </Button>
         </aside>
       </form>
-
-      <div
-        className="fixed inset-x-0 z-30 border-t border-line bg-surface/95 px-3 py-2.5 shadow-nav backdrop-blur-xl lg:hidden"
-        style={{ bottom: "var(--mobile-chrome-bottom)" }}
-      >
-        <div className="mx-auto flex max-w-lg items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
-              {wantsAdvance ? "Pay now" : "Total"}
-            </p>
-            <p className="truncate font-display text-lg font-semibold tabular-nums">
-              {quote ? formatPkr(wantsAdvance ? payNow : quote.total) : "…"}
-            </p>
-          </div>
-          <Button
-            type="submit"
-            form={undefined}
-            className="min-h-11 min-w-[9.5rem]"
-            disabled={blocked}
-            onClick={handleSubmit(onSubmit)}
-          >
-            {formState.isSubmitting
-              ? "Placing…"
-              : missingReceipt
-                ? "Add receipt"
-                : "Place order"}
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

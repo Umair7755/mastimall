@@ -4,7 +4,7 @@ export const DEFAULT_SALE_BANNER = {
   title: 'Mega toy & décor deals',
   subtitle: 'Up to 40% off · Free delivery from Rs 3,000',
   ctaLabel: 'Shop deals',
-  ctaHref: '/search?onSale=1',
+  ctaHref: '/sales',
   endsAt: null,
   message: 'Cash on delivery across Pakistan · Prices checked on our server.',
 };

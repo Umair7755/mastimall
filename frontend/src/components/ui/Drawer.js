@@ -54,8 +54,8 @@ export function Drawer({ open, onClose, title, side = "right", children, footer 
             className={cn(
               "absolute flex flex-col overflow-hidden bg-white shadow-[0_-16px_48px_rgba(15,23,42,0.28)]",
               isBottom
-                ? "inset-x-0 bottom-0 max-h-[min(72dvh,560px)] rounded-t-[1.25rem]"
-                : "inset-y-0 right-0 w-full max-w-md"
+                ? "inset-x-0 bottom-0 max-h-[min(78dvh,620px)] rounded-t-[1.25rem]"
+                : "inset-y-0 right-0 h-full w-full max-w-md"
             )}
             initial={hidden}
             animate={shown}
@@ -97,10 +97,11 @@ export function Drawer({ open, onClose, title, side = "right", children, footer 
               </div>
             </div>
 
+            {/* Body: grow only when needed; tinted scrollbar so scroll is obvious */}
             <div
               className={cn(
-                "min-h-0 flex-1 overflow-auto overscroll-contain bg-white px-4",
-                isBottom ? "py-2" : "py-3"
+                "drawer-scroll min-h-0 overflow-y-auto overscroll-contain bg-white px-4",
+                isBottom ? "max-h-[min(52dvh,420px)] py-2" : "flex-1 py-3"
               )}
             >
               {children}
@@ -114,8 +115,8 @@ export function Drawer({ open, onClose, title, side = "right", children, footer 
                 )}
                 style={{
                   paddingBottom: isBottom
-                    ? "calc(0.65rem + env(safe-area-inset-bottom, 0px) + var(--mobile-chrome-bottom, 0px))"
-                    : "calc(0.85rem + env(safe-area-inset-bottom, 0px) + var(--mobile-chrome-bottom, 0px))",
+                    ? "calc(0.75rem + env(safe-area-inset-bottom, 0px))"
+                    : "calc(0.85rem + env(safe-area-inset-bottom, 0px))",
                 }}
               >
                 {footer}

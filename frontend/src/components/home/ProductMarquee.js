@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { SaleBadge } from "@/components/ui/Badge";
 import { ToyImage } from "@/components/product/ToyImage";
 import { useAddToCart } from "@/hooks/useAddToCart";
 import { usePageVisible } from "@/hooks/usePageVisible";
@@ -18,6 +19,10 @@ function DeskCard({ product }) {
   const image = product.images?.[0];
   const price = product.currentPrice ?? product.salePrice ?? product.price;
   const onSale = product.salePrice > 0 && product.salePrice < product.price;
+  const salePercent =
+    onSale && product.price > 0
+      ? Math.round(((product.price - product.salePrice) / product.price) * 100)
+      : 0;
 
   return (
     <article className="group flex w-[13rem] shrink-0 flex-col overflow-hidden rounded-[1.35rem] border border-white/70 bg-white shadow-soft transition hover:-translate-y-1 hover:shadow-lift">
@@ -29,14 +34,13 @@ function DeskCard({ product }) {
             sizes="220px"
             className="object-contain p-4 transition duration-300 group-hover:scale-105"
           />
-          {onSale || product.isNew ? (
-            <span
-              className={cn(
-                "absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm",
-                onSale ? "bg-coral" : "bg-brand"
-              )}
-            >
-              {onSale ? "Sale" : "New"}
+          {onSale ? (
+            <span className="absolute left-2 top-2">
+              <SaleBadge percent={salePercent} compact />
+            </span>
+          ) : product.isNew ? (
+            <span className="absolute left-2 top-2 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+              New
             </span>
           ) : null}
         </div>
@@ -75,6 +79,10 @@ function SpotlightSlide({ product, priority }) {
   const image = product.images?.[0];
   const price = product.currentPrice ?? product.salePrice ?? product.price;
   const onSale = product.salePrice > 0 && product.salePrice < product.price;
+  const salePercent =
+    onSale && product.price > 0
+      ? Math.round(((product.price - product.salePrice) / product.price) * 100)
+      : 0;
 
   return (
     <article className="w-full shrink-0 snap-center px-3">
@@ -91,14 +99,13 @@ function SpotlightSlide({ product, priority }) {
             sizes="92vw"
             className="object-contain p-3"
           />
-          {onSale || product.isNew ? (
-            <span
-              className={cn(
-                "absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm",
-                onSale ? "bg-coral" : "bg-brand"
-              )}
-            >
-              {onSale ? "Sale" : "New"}
+          {onSale ? (
+            <span className="absolute left-3 top-3">
+              <SaleBadge percent={salePercent} />
+            </span>
+          ) : product.isNew ? (
+            <span className="absolute left-3 top-3 rounded-full bg-brand px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+              New
             </span>
           ) : null}
         </div>

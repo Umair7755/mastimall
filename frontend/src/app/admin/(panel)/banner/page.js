@@ -17,7 +17,7 @@ const EMPTY = {
   title: "Mega toy & décor deals",
   subtitle: "Up to 40% off · Free delivery from Rs 3,000",
   ctaLabel: "Shop deals",
-  ctaHref: "/search?onSale=1",
+  ctaHref: "/sales",
   endsAt: "",
   message: "",
 };

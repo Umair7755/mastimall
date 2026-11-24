@@ -20,6 +20,7 @@ import {
   Lamp,
   Puzzle,
   Heart,
+  Percent,
   Sofa,
   Trees,
   Users,
@@ -120,11 +121,32 @@ export function ShopSheet({ departments = [] }) {
               </button>
             </div>
 
+            <Link
+              href="/sales"
+              onClick={close}
+              className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-gradient-to-r from-[#e11d48] via-[#f43f5e] to-[#fb7185] px-3.5 py-2.5 text-white shadow-[0_8px_20px_-10px_rgba(225,29,72,0.65)] ring-1 ring-white/20 transition active:scale-[0.99]"
+            >
+              <span className="inline-flex items-center gap-2.5">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-white/20 ring-1 ring-white/35">
+                  <Percent size={18} strokeWidth={2.5} aria-hidden="true" />
+                </span>
+                <span className="flex flex-col leading-none">
+                  <span className="font-display text-base font-bold">Sales</span>
+                  <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/85">
+                    Hot deals · on sale now
+                  </span>
+                </span>
+              </span>
+              <span className="rounded-full bg-sun px-2.5 py-1 font-display text-[11px] font-black text-ink">
+                SALE
+              </span>
+            </Link>
+
             {/* Top tabs — Toys / Decor */}
             <div
               role="tablist"
               aria-label="Departments"
-              className="mt-4 grid grid-cols-2 gap-1 rounded-2xl border border-line/60 bg-white p-1 shadow-sm"
+              className="mt-3 grid grid-cols-2 gap-1 rounded-2xl border border-line/60 bg-white p-1 shadow-sm"
             >
               {tabs.map((item) => {
                 const selected = item.slug === active?.slug;

@@ -94,14 +94,16 @@ export function AnnouncementBar({ banner, message }) {
         <Zap className="sale-float-delay h-8 w-8 text-sun" aria-hidden="true" />
       </div>
 
-      {/* Mobile: badge + sliding title · subtitle + timer (no Shop) */}
+      {/* Mobile: badge + sliding title · subtitle + timer */}
       <div className="relative mx-auto flex max-w-[1920px] items-center gap-1.5 px-2 py-1.5 sm:hidden">
-        <span
+        <Link
+          href={config.ctaHref || "/sales"}
           className="sale-banner__badge inline-flex h-6 shrink-0 items-center rounded-full bg-sun px-2 font-display text-[11px] font-black tabular-nums tracking-tight text-ink shadow-[0_2px_0_0_#c9860a]"
           title={config.badge || "SALE"}
+          aria-label="Open sales"
         >
           {badgeMark(config.badge || "SALE", { full: true })}
-        </span>
+        </Link>
 
         <div
           className="sale-banner__marquee min-w-0 flex-1"
@@ -146,12 +148,16 @@ export function AnnouncementBar({ banner, message }) {
       {/* Desktop / tablet */}
       <div className="relative mx-auto hidden max-w-[1920px] flex-col items-center justify-between gap-2.5 px-3 py-2.5 sm:flex sm:flex-row sm:gap-4 sm:px-4 sm:py-3 lg:px-5">
         <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-          <span className="sale-banner__badge inline-flex items-center gap-1.5 rounded-full bg-sun px-2.5 py-1 font-display text-xs font-bold tracking-wide text-ink shadow-[0_3px_0_0_#c9860a] sm:text-sm">
+          <Link
+            href={config.ctaHref || "/sales"}
+            className="sale-banner__badge inline-flex items-center gap-1.5 rounded-full bg-sun px-2.5 py-1 font-display text-xs font-bold tracking-wide text-ink shadow-[0_3px_0_0_#c9860a] transition hover:brightness-105 sm:text-sm"
+            aria-label="Open sales"
+          >
             <span className="grid h-6 min-w-6 place-items-center rounded-full bg-ink px-1.5 text-[11px] font-black tabular-nums text-sun">
               {badgeMark(config.badge || "SALE", { full: true })}
             </span>
             {config.badge || "SALE"}
-          </span>
+          </Link>
 
           <p className="text-center text-sm font-semibold sm:text-left">
             <span className="font-display text-base sm:text-lg">{config.title || "Store deals"}</span>
@@ -185,7 +191,7 @@ export function AnnouncementBar({ banner, message }) {
           )}
 
           <Link
-            href={config.ctaHref || "/search?onSale=1"}
+            href={config.ctaHref || "/sales"}
             className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-white px-4 font-display text-sm font-semibold text-[#6d28d9] shadow-soft transition hover:scale-[1.03] hover:bg-sun hover:text-ink active:scale-[0.98]"
           >
             <Gift aria-hidden="true" size={16} />

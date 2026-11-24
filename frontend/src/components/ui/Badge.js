@@ -24,6 +24,28 @@ export function Badge({ tone = "new", className, children }) {
   );
 }
 
+/** Bold sale flag with optional % off. */
+export function SaleBadge({ percent, compact = false, className }) {
+  const label =
+    Number.isFinite(percent) && percent > 0 && percent < 100
+      ? `${Math.round(percent)}% OFF`
+      : "SALE";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#e11d48] to-[#fb7185] font-display font-black uppercase tracking-wide text-white shadow-[0_6px_14px_-8px_rgba(225,29,72,0.8)] ring-2 ring-white/90",
+        compact ? "h-6 px-2 text-[10px]" : "h-7 px-2.5 text-[11px]",
+        className
+      )}
+    >
+      <span className="grid h-4 w-4 place-items-center rounded-full bg-white/20 text-[9px] leading-none">
+        %
+      </span>
+      {label}
+    </span>
+  );
+}
+
 /** Price ribbon used on budget tiles and hot product cards. */
 export function PriceRibbon({ label = "UNDER", value, color = "#2563EB", className }) {
   return (

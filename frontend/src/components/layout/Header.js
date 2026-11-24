@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   ChevronDown,
   Gift,
@@ -22,7 +23,7 @@ import { PictureTile } from "@/components/home/PictureTile";
 import { DepartmentFindControl } from "@/components/home/DepartmentFindControl";
 import { useCartReady } from "@/hooks/useStoreReady";
 import { apiFetch } from "@/lib/browser";
-import { buildMallFinderGroups } from "@/lib/finderGroups";
+import { buildDepartmentFinderGroups, buildMallFinderGroups } from "@/lib/finderGroups";
 import { useCart } from "@/store/cart";
 import { useUi } from "@/store/ui";
 import { CONTAINER } from "@/lib/layout";
@@ -132,6 +133,7 @@ function HeaderAction({ href, onClick, icon: Icon, label, tone = "soft", badge, 
 }
 
 export function Header({ nav = [], departments = [] }) {
+  const pathname = usePathname() || "";
   const openShop = useUi((state) => state.openShop);
   const openDrawer = useCart((state) => state.openDrawer);
   const ready = useCartReady();
@@ -140,13 +142,37 @@ export function Header({ nav = [], departments = [] }) {
   const [scrolled, setScrolled] = useState(false);
   const [welcomeName, setWelcomeName] = useState("");
   const menuRef = useRef(null);
-  const finderGroups = useMemo(
-    () =>
-      buildMallFinderGroups(
+
+  /** One header filter — swaps by route so Toys/Decor don't double up. */
+  const headerFilter = useMemo(() => {
+    if (pathname === "/toys" || pathname.startsWith("/toys/")) {
+      return {
+        key: "toys",
+        groups: buildDepartmentFinderGroups("toys"),
+        title: "Find faster",
+        seeAllHref: "/search?department=toys",
+        tone: "toys",
+      };
+    }
+    if (pathname === "/decor" || pathname.startsWith("/decor/")) {
+      return {
+        key: "decor",
+        groups: buildDepartmentFinderGroups("decor"),
+        title: "Style the home",
+        seeAllHref: "/search?department=decor",
+        tone: "decor",
+      };
+    }
+    return {
+      key: "mall",
+      groups: buildMallFinderGroups(
         departments.length ? departments.map((d) => d.slug) : ["toys", "decor"]
       ),
-    [departments]
-  );
+      title: "Find faster",
+      seeAllHref: "/search",
+      tone: "mall",
+    };
+  }, [pathname, departments]);
 
   useEffect(() => {
     function onScroll() {
@@ -223,9 +249,10 @@ export function Header({ nav = [], departments = [] }) {
             type="button"
             onClick={openShop}
             aria-label="Open menu"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-white transition active:scale-[0.96] sm:h-11 sm:w-11 lg:hidden"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-ink px-2.5 font-display text-sm font-semibold text-white transition active:scale-[0.96] sm:h-11 sm:px-3.5 sm:text-base lg:hidden"
           >
-            <Menu aria-hidden="true" size={18} />
+            <Menu aria-hidden="true" size={17} />
+            <span>Menu</span>
           </button>
 
           <Link href="/" className="min-w-0 flex-1 overflow-visible lg:flex-none" aria-label="Masti Mall home">
@@ -278,10 +305,11 @@ export function Header({ nav = [], departments = [] }) {
             id="store-search-mobile"
             endSlot={
               <DepartmentFindControl
-                groups={finderGroups}
-                title="Find faster"
-                seeAllHref="/search"
-                tone="mall"
+                key={headerFilter.key}
+                groups={headerFilter.groups}
+                title={headerFilter.title}
+                seeAllHref={headerFilter.seeAllHref}
+                tone={headerFilter.tone}
                 variant="header"
                 showHandCue={false}
               />

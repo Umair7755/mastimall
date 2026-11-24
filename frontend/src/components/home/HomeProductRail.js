@@ -11,13 +11,14 @@ const COMPACT_ROW =
 
 const THEMES = {
   mix: {
-    title: "Mall picks",
-    text: "Toys lead the shelf — décor finishes the room.",
-    eyebrow: "Featured",
+    title: "Featured",
+    text: "",
+    eyebrow: "",
     icon: ShoppingBag,
     moreHref: "/search",
     shell: "border border-black/5 bg-gradient-to-br from-[#fff7ec] via-white to-[#ecfdf5] shadow-soft",
     display: "marquee",
+    compactHeading: true,
   },
   toysAll: {
     title: "All toys",
@@ -172,9 +173,10 @@ export function HomeProductRail({
         <div className="relative">
           <div className="px-3 sm:px-0">
             <SectionHeading
-              eyebrow={eyebrow || meta.eyebrow}
+              eyebrow={eyebrow ?? meta.eyebrow}
               title={title || meta.title}
-              text={text || meta.text}
+              text={text ?? meta.text}
+              compact={!!meta.compactHeading}
               action={
                 mode === "marquee" ? (
                   <Link

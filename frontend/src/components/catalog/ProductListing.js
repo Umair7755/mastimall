@@ -99,6 +99,7 @@ export function ProductListing({
   categories = [],
   breadcrumbs,
   hideAdult = false,
+  hideMobileFind = false,
   problem = "",
 }) {
   const items = result?.items || [];
@@ -116,17 +117,19 @@ export function ProductListing({
       {title ? <h1 className="font-display text-[32px] font-semibold lg:text-[44px]">{title}</h1> : null}
       {intro ? <p className="mt-3 max-w-2xl text-ink-muted">{intro}</p> : null}
 
-      <div className="mt-6 md:hidden">
-        <MobileFilters>
-          <FilterLinks
-            filters={activeFilters}
-            pathname={pathname}
-            searchParams={searchParams}
-            hideAdult={hideAdult}
-            facets={facets}
-          />
-        </MobileFilters>
-      </div>
+      {!hideMobileFind ? (
+        <div className="mt-6 md:hidden">
+          <MobileFilters>
+            <FilterLinks
+              filters={activeFilters}
+              pathname={pathname}
+              searchParams={searchParams}
+              hideAdult={hideAdult}
+              facets={facets}
+            />
+          </MobileFilters>
+        </div>
+      ) : null}
 
       <div className="mt-4 md:mt-6 md:grid md:grid-cols-[16rem_1fr] md:gap-6 lg:grid-cols-[17.5rem_1fr] lg:gap-8">
         <aside className="hidden md:block">

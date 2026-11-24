@@ -2,13 +2,11 @@
 
 import { useMemo } from "react";
 import { FindMallRail } from "@/components/home/FindMallRail";
-import { DepartmentFindControl } from "@/components/home/DepartmentFindControl";
 import { HomeProductRail } from "@/components/home/HomeProductRail";
 import { TrustStrip } from "@/components/home/TrustStrip";
 import { useCheckoutSettings } from "@/hooks/useCheckoutSettings";
 import { buildDepartmentFinderGroups } from "@/lib/finderGroups";
 import { formatPkr } from "@/lib/format";
-import { CONTAINER } from "@/lib/layout";
 
 /**
  * Department landing — mobile: title + Find button (sheet); products start immediately.
@@ -43,29 +41,7 @@ export function DepartmentHome({ department, all = [], newArrivals = [] }) {
 
   return (
     <div data-department={themeKey} className="pb-2">
-      <div className={`${CONTAINER} pt-3 sm:pt-5`}>
-        <div className="flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted">Shop</p>
-            <h1 className="font-display text-[28px] font-semibold leading-none text-ink sm:text-[36px]">
-              {name}
-            </h1>
-          </div>
-          <div className="relative z-20 lg:hidden">
-            <DepartmentFindControl
-              groups={groups}
-              title={findTitle}
-              seeAllHref={seeAllHref}
-              tone={isDecor ? "decor" : "toys"}
-            />
-          </div>
-        </div>
-        {department?.seo?.description ? (
-          <p className="mt-1.5 hidden max-w-2xl text-sm text-ink-muted sm:mt-2 sm:block sm:text-base">
-            {department.seo.description}
-          </p>
-        ) : null}
-      </div>
+      <h1 className="sr-only">{name}</h1>
 
       {/* Desktop / tablet: full finder board */}
       <div className="hidden lg:block">

@@ -727,7 +727,7 @@ await MallSetting.create({
       { label: 'Home', href: '/', kind: 'home' },
       { label: 'Toys', href: '/toys', kind: 'department' },
       { label: 'Decor', href: '/decor', kind: 'department' },
-      { label: 'Deals', href: '/search?onSale=1' },
+      { label: 'Sales', href: '/sales' },
       { label: 'New arrivals', href: '/search?sort=new' },
     ],
     sections: [

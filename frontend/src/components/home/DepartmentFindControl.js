@@ -64,12 +64,18 @@ export function DepartmentFindControl({
           <button
             type="button"
             onClick={openSheet}
-            aria-label="Find filters"
+            aria-label="Filters"
             aria-haspopup="dialog"
             aria-expanded={open}
-            className="relative z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-ink/15 bg-ink text-sun shadow-sm transition active:scale-[0.96] sm:h-11 sm:w-11"
+            className={cn(
+              "relative z-10 inline-flex h-10 items-center gap-1.5 rounded-full border px-2.5 pr-3 shadow-sm transition active:scale-[0.96] sm:h-11",
+              isDecor
+                ? "border-teal-700/30 bg-teal-800 text-white"
+                : "border-ink/15 bg-ink text-sun"
+            )}
           >
-            <SlidersHorizontal size={16} strokeWidth={2.35} aria-hidden="true" />
+            <SlidersHorizontal size={15} strokeWidth={2.35} aria-hidden="true" />
+            <span className="font-display text-[13px] font-semibold leading-none">Filter</span>
           </button>
         ) : (
           <button
