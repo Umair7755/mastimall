@@ -8,6 +8,7 @@ import { Header } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { ShopSheet } from "@/components/layout/ShopSheet";
 import { CartDrawer } from "@/components/cart/CartDrawer";
+import { FirstLandRefresh } from "@/components/layout/FirstLandRefresh";
 import { LiveStoreRefresh } from "@/components/layout/LiveStoreRefresh";
 import { StoreAnalytics } from "@/components/analytics/StoreAnalytics";
 import { AccessGate } from "@/components/access/AccessGate";
@@ -99,6 +100,7 @@ async function StorefrontChrome({ children }) {
         <ShopSheet departments={departments} />
       </Suspense>
       <HelpChat />
+      <FirstLandRefresh />
       <LiveStoreRefresh />
       <StoreAnalytics />
       <AccessGate />
